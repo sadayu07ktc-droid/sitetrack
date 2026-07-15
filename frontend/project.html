@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>รายละเอียดโครงการ — SiteTrack</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="side">
+      <div class="brand"><span class="logo">S</span> SiteTrack</div>
+      <a class="nav-i" href="dashboard.html"><span class="ic">▦</span><span>แดชบอร์ด</span></a>
+      <a class="nav-i active" href="#"><span class="ic">▤</span><span>โครงการ</span></a>
+      <a class="nav-i" href="pm.html"><span class="ic">✔</span><span>จัดการงาน</span></a>
+      <a class="nav-i" href="#"><span class="ic">⚠</span><span>ปัญหา</span></a>
+      <a class="nav-i role-switch" href="app.html"><span class="ic">📱</span><span>มุมมองผู้รับเหมา</span></a>
+    </aside>
+
+    <main class="main">
+      <div class="topline">
+        <div>
+          <a href="dashboard.html" class="muted" style="text-decoration:none;font-size:13px">‹ กลับแดชบอร์ด</a>
+          <h1 id="pname">กำลังโหลด…</h1>
+          <div class="sub" id="owner"></div>
+        </div>
+        <div class="right">
+          <button class="theme-toggle" id="themeBtn" onclick="UI.toggleTheme()">☾</button>
+        </div>
+      </div>
+
+      <div id="content"></div>
+    </main>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/project.js"></script>
+</body>
+</html>

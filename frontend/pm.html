@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>จัดการงาน — SiteTrack (PM)</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="side">
+      <div class="brand"><span class="logo">S</span> SiteTrack</div>
+      <a class="nav-i" href="dashboard.html"><span class="ic">▦</span><span>แดชบอร์ด</span></a>
+      <a class="nav-i active" href="pm.html"><span class="ic">✔</span><span>จัดการงาน</span></a>
+      <a class="nav-i" href="#assign"><span class="ic">＋</span><span>มอบหมายงาน</span></a>
+      <a class="nav-i" href="#issues"><span class="ic">⚠</span><span>ปัญหา</span></a>
+      <a class="nav-i" href="#contractors"><span class="ic">👷</span><span>ผู้รับเหมา</span></a>
+      <a class="nav-i role-switch" href="app.html"><span class="ic">📱</span><span>มุมมองผู้รับเหมา</span></a>
+    </aside>
+
+    <main class="main">
+      <div class="topline">
+        <div>
+          <h1>จัดการงาน</h1>
+          <div class="sub" id="subline">ผู้จัดการโครงการ · กำลังโหลด…</div>
+        </div>
+        <div class="right">
+          <button class="theme-toggle" id="themeBtn" onclick="UI.toggleTheme()">☾</button>
+          <div class="avatar" style="background:var(--st-prog)">พจ</div>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="grid-2">
+        <div>
+          <div class="panel">
+            <div class="ph"><b>งานรออนุมัติ</b><span class="muted" id="pendingCount" style="font-size:12px"></span></div>
+            <div id="pending"></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><b>งานทั้งหมดในความดูแล</b></div>
+            <div class="tw" style="overflow-x:auto"><div id="allTasks"></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel" id="issues">
+            <div class="ph"><b>ปัญหาที่ต้องตอบ</b><span class="muted" id="issueCount" style="font-size:12px"></span></div>
+            <div id="issueList"></div>
+          </div>
+          <div class="panel" id="assign">
+            <div class="ph"><b>มอบหมายงานใหม่</b></div>
+            <div class="form-grid" id="assignForm"></div>
+          </div>
+          <div class="panel" id="contractors">
+            <div class="ph"><b>ผู้รับเหมา</b></div>
+            <div id="contractorList"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pm.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# secrets — ห้าม commit token/URL จริง
+backend/.clasp.json
+frontend/js/config.local.js
+.env
+*.local
+
+# logs / temp
+*.log
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/

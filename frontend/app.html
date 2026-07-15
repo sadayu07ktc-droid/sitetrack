@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>งานของฉัน — SiteTrack</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-head">
+      <button class="back hidden" id="backBtn" onclick="App.back()">‹</button>
+      <div class="ttl" id="headTitle">งานของฉัน<small id="headSub">สมชาย · ริเวอร์ เฟส 2</small></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="theme-toggle" id="themeBtn" onclick="UI.toggleTheme()">☾</button>
+        <div class="avatar" style="background:var(--accent)" id="headAvatar">สม</div>
+      </div>
+    </header>
+
+    <main class="app-body" id="view"></main>
+
+    <nav class="tabbar" id="tabbar">
+      <button class="tb on" data-tab="tasks" onclick="App.go('tasks')"><span class="i">▦</span>งาน</button>
+      <button class="tb" data-tab="issues" onclick="App.go('issues')"><span class="i">⚠</span>ปัญหา</button>
+      <button class="tb" data-tab="notify" onclick="App.go('notify')"><span class="i">🔔</span>แจ้งเตือน</button>
+      <button class="tb" data-tab="more" onclick="App.go('more')"><span class="i">☰</span>อื่น ๆ</button>
+    </nav>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

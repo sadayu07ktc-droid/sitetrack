@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แดชบอร์ดผู้บริหาร — SiteTrack</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="dash">
+    <aside class="side">
+      <div class="brand"><span class="logo">S</span> SiteTrack</div>
+      <a class="nav-i active" href="dashboard.html"><span class="ic">▦</span><span>แดชบอร์ด</span></a>
+      <a class="nav-i" href="#"><span class="ic">▤</span><span>โครงการ</span></a>
+      <a class="nav-i" href="#"><span class="ic">✔</span><span>งานทั้งหมด</span></a>
+      <a class="nav-i" href="#"><span class="ic">⚠</span><span>ปัญหา</span></a>
+      <a class="nav-i" href="#"><span class="ic">👷</span><span>ผู้รับเหมา</span></a>
+      <a class="nav-i" href="#"><span class="ic">▧</span><span>รายงาน</span></a>
+      <a class="nav-i role-switch" href="app.html"><span class="ic">📱</span><span>มุมมองผู้รับเหมา</span></a>
+    </aside>
+
+    <main class="main">
+      <div class="topline">
+        <div>
+          <h1>ภาพรวมโครงการ</h1>
+          <div class="sub" id="subline">กำลังโหลด…</div>
+        </div>
+        <div class="right">
+          <button class="theme-toggle" id="themeBtn" onclick="UI.toggleTheme()">☾</button>
+          <div class="avatar" style="background:var(--st-done)">ผบ</div>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="grid-2">
+        <div>
+          <div class="panel">
+            <div class="ph"><b>ความคืบหน้าตามโครงการ</b><a href="#">ดูทั้งหมด →</a></div>
+            <div id="projects"></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><b>งานเสร็จรายสัปดาห์</b><span class="muted" style="font-size:12px">■ เสร็จ ■ กำลังทำ</span></div>
+            <div class="chart" id="chart"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="ph"><b>ปัญหาล่าสุด</b><a href="#">ทั้งหมด →</a></div>
+            <div id="issues"></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><b>กิจกรรมล่าสุด</b></div>
+            <div class="feed" id="feed"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

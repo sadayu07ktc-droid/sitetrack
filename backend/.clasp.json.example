@@ -1,0 +1,6 @@
+{
+  "//": "ก๊อปไฟล์นี้เป็น .clasp.json แล้วใส่ scriptId ของโปรเจกต์ Apps Script จริง",
+  "//scriptId": "หาได้จาก Apps Script > Project Settings > IDs > Script ID",
+  "scriptId": "PUT_YOUR_APPS_SCRIPT_ID_HERE",
+  "rootDir": "."
+}
