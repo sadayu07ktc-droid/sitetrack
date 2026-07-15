@@ -1,0 +1,33 @@
+name: Deploy Backend (Apps Script)
+
+# GAS ไม่ค่อยแก้บ่อย + ต้องใช้ auth ของ Google จึงตั้งเป็น "กดรันเอง"
+# ไปที่แท็บ Actions > Deploy Backend (Apps Script) > Run workflow
+# (ถ้าอยากให้อัตโนมัติทุก push ที่แก้ backend/ ให้เพิ่ม push: paths: [backend/**])
+on:
+  workflow_dispatch:
+
+jobs:
+  clasp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Restore clasp credentials
+        run: |
+          printf '%s' '${{ secrets.CLASPRC_JSON }}' > "$HOME/.clasprc.json"
+          printf '%s' '${{ secrets.CLASP_JSON }}' > backend/.clasp.json
+
+      - name: Push & deploy
+        working-directory: backend
+        run: |
+          clasp push -f
+          clasp deploy --description "CI ${{ github.sha }}"

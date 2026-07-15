@@ -1,0 +1,29 @@
+name: Deploy Web (Cloudflare Pages)
+
+# ทำงานอัตโนมัติทุกครั้งที่ push ขึ้น main (เฉพาะเมื่อไฟล์ใน frontend/ เปลี่ยน)
+# หรือกดรันเองจากแท็บ Actions ได้ (workflow_dispatch)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy frontend to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # static ล้วน ไม่ต้อง build — อัปโฟลเดอร์ frontend ตรง ๆ
+          command: pages deploy frontend --project-name=sitetrack --branch=main
