@@ -30,4 +30,4 @@ jobs:
         working-directory: backend
         run: |
           clasp push -f
-          clasp deploy --description "CI ${{ github.sha }}"
+          clasp deploy --deploymentId AKfycbz_Zf3K3YxBoj4DBY8LgzLALkSFgxb98mIxcFHEEV0wVGh4-ZJfyMMefaeiq_1Ey5Cf7A --description "CI ${{ github.sha }}"
