@@ -11,8 +11,8 @@
    ทุกฟังก์ชันคืน Promise เพื่อให้สลับเป็น fetch จริงได้โดยไม่แก้ UI
    ============================================================ */
 window.API = (function () {
-  const USE_MOCK = true;
-  const GAS_URL = ""; // เช่น "https://script.google.com/macros/s/XXXX/exec"
+  const USE_MOCK = false;
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz_Zf3K3YxBoj4DBY8LgzLALkSFgxb98mIxcFHEEV0wVGh4-ZJfyMMefaeiq_1Ey5Cf7A/exec";
 
   function delay(v, ms) { return new Promise(function (r) { setTimeout(function () { r(v); }, ms || 180); }); }
 
