@@ -120,6 +120,7 @@ function getDashboard_() {
     weekly: weekly,
     weekLabels: labels,
     weeklyItems: weeklyItems,
+    lateTasks: tasks.filter(function (t) { return t.status === 'late'; }),
     kpi: {
       projects: projects.length, avgProgress: avg,
       late: tasks.filter(function (t) { return t.status === 'late'; }).length,

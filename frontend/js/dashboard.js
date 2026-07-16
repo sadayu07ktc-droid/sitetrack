@@ -58,12 +58,23 @@
     // click outside (but not on a chart bar) closes; clicking a bar switches the day
     document.addEventListener("click", function (e) {
       if (!drawerEl.classList.contains("open")) return;
-      if (e.target.closest(".drawer") || e.target.closest("#chart")) return;
+      if (e.target.closest(".drawer") || e.target.closest(".dr-trigger")) return;
       closeDrawer();
     });
   }
-  function openDrawer(i, w, items) {
+  // generic side panel — title + optional subtitle + body html
+  function openPanel(title, subHtml, bodyHtml) {
     ensureDrawer();
+    drawerEl.innerHTML =
+      '<div class="dh"><div><h3>' + title + '</h3>' + (subHtml ? '<div class="dsub">' + subHtml + '</div>' : '') + '</div>' +
+      '<button class="dclose" aria-label="ปิด">✕</button></div>' +
+      '<div class="db">' + (bodyHtml || '<div class="empty">ไม่มีข้อมูล</div>') + '</div>';
+    drawerEl.querySelector(".dclose").addEventListener("click", closeDrawer);
+    drawerBg.classList.add("open");
+    void drawerEl.offsetWidth;               // force reflow so the slide-in transition runs
+    drawerEl.classList.add("open");
+  }
+  function openDrawer(i, w, items) {
     var list = (items || []).slice().reverse();
     var body = list.length ? list.map(function (u) {
       var col = u.progress >= 100 ? "var(--st-done)" : "var(--st-prog)";
@@ -73,16 +84,33 @@
         '<div class="bar" style="margin-bottom:' + (u.note ? '8px' : '0') + '"><i style="width:' + u.progress + '%;background:' + col + '"></i></div>' +
         (u.note ? '<div class="dnote">' + esc(u.note) + '</div>' : '') + '</div>';
     }).join("") : '<div class="empty">ไม่มีงานอัพเดทในวันนี้</div>';
-    drawerEl.innerHTML =
-      '<div class="dh"><div><h3>งาน' + DAYNAMES[i] + '</h3>' +
-        '<div class="dsub"><span><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + '</span>' +
-        '<span><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + '</span></div></div>' +
-        '<button class="dclose" aria-label="ปิด">✕</button></div>' +
-      '<div class="db">' + body + '</div>';
-    drawerEl.querySelector(".dclose").addEventListener("click", closeDrawer);
-    drawerBg.classList.add("open");
-    void drawerEl.offsetWidth;               // force reflow so the slide-in transition runs
-    drawerEl.classList.add("open");
+    var sub = '<span><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + '</span>' +
+              '<span><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + '</span>';
+    openPanel("งาน" + DAYNAMES[i], sub, body);
+  }
+  // row renderers for KPI filter panels
+  function projRows(projects) {
+    return projects.map(function (p) {
+      var g = GRAD(p.progress, p.status), st = STATUS[p.status] || STATUS.on_track;
+      return '<div class="di"><div class="dtop"><b>' + esc(p.name) + '</b><span class="pct">' + p.progress + '%</span></div>' +
+        '<div class="dmeta"><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span> · ' + esc(p.owner) + '</div>' +
+        '<div class="bar"><i style="width:' + p.progress + '%;background:' + g + '"></i></div></div>';
+    }).join("");
+  }
+  function taskRows(tasks) {
+    return tasks.map(function (t) {
+      return '<div class="di"><div class="dtop"><b>' + esc(t.title) + '</b><span class="pct" style="color:var(--st-late)">' + t.progress + '%</span></div>' +
+        '<div class="dmeta">📍 ' + esc(t.project) + ' · ' + esc(t.location || "") + ' · 👷 ' + esc(t.assignee) + '</div>' +
+        '<div class="bar"><i style="width:' + t.progress + '%;background:var(--grad-late)"></i></div></div>';
+    }).join("");
+  }
+  function issueRows(issues) {
+    return issues.map(function (s) {
+      var sv = SEV[s.severity] || SEV.low;
+      return '<div class="di"><div class="dtop"><b>' + esc(s.title) + '</b><span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>' +
+        '<div class="dmeta">📍 ' + esc(s.project) + ' · 👷 ' + esc(s.reporter) + ' · 🕒 ' + fmtTime(s.createdAt) + '</div>' +
+        (s.detail ? '<div class="dnote">' + esc(s.detail) + '</div>' : '') + '</div>';
+    }).join("");
   }
   function closeDrawer() {
     if (!drawerEl) return;
@@ -121,19 +149,31 @@
           '<span class="chip2"><span class="dot" style="background:var(--st-prob)"></span>มีปัญหา ' + probP + '</span>' +
         '</div></div></div>';
 
-    // ---- KPIs (icon badges + gradients) ----
+    // ---- KPIs (icon badges + gradients, clickable filters) ----
     var kpis = [
-      { lab: "โครงการทั้งหมด", val: k.projects, unit: "", cls: "k-accent", ic: ICONS.building, trend: "▲ 2 เริ่มใหม่เดือนนี้", tc: "up" },
-      { lab: "คืบหน้าเฉลี่ย", val: k.avgProgress, unit: "%", cls: "k-prog", ic: ICONS.trend, trend: "▲ 5% จากสัปดาห์ก่อน", tc: "up" },
-      { lab: "งานล่าช้า", val: k.late, unit: "", cls: "k-late", ic: ICONS.clock, trend: "ต้องติดตาม", tc: "down" },
-      { lab: "ปัญหาค้าง", val: k.openIssues, unit: "", cls: "k-prob", ic: ICONS.alert, trend: (highIssues ? highIssues + " ระดับสูง" : "อยู่ในเกณฑ์"), tc: "down" }
+      { lab: "โครงการทั้งหมด", val: k.projects, unit: "", cls: "k-accent", ic: ICONS.building, filter: "projects", trend: "▲ 2 เริ่มใหม่เดือนนี้", tc: "up" },
+      { lab: "คืบหน้าเฉลี่ย", val: k.avgProgress, unit: "%", cls: "k-prog", ic: ICONS.trend, filter: "progress", trend: "▲ 5% จากสัปดาห์ก่อน", tc: "up" },
+      { lab: "งานล่าช้า", val: k.late, unit: "", cls: "k-late", ic: ICONS.clock, filter: "late", trend: "ต้องติดตาม", tc: "down" },
+      { lab: "ปัญหาค้าง", val: k.openIssues, unit: "", cls: "k-prob", ic: ICONS.alert, filter: "issues", trend: (highIssues ? highIssues + " ระดับสูง" : "อยู่ในเกณฑ์"), tc: "down" }
     ];
     document.getElementById("kpis").innerHTML = kpis.map(function (x) {
-      return '<div class="kpi rich ' + x.cls + '"><div class="kicon">' + x.ic + '</div>' +
-        '<div class="lab">' + x.lab + '</div>' +
+      return '<div class="kpi rich dr-trigger ' + x.cls + '" data-filter="' + x.filter + '" role="button" tabindex="0">' +
+        '<div class="kicon">' + x.ic + '</div><div class="lab">' + x.lab + '</div>' +
         '<div class="val tabular">' + x.val + (x.unit ? '<small>' + x.unit + '</small>' : '') + '</div>' +
-        '<div class="trend ' + x.tc + '">' + x.trend + '</div></div>';
+        '<div class="trend ' + x.tc + '">' + x.trend + '</div><span class="kfilter">แตะเพื่อดู →</span></div>';
     }).join("");
+    // KPI click → filter panel
+    function runFilter(f) {
+      if (f === "projects") openPanel("ทุกโครงการ", d.projects.length + " โครงการ", projRows(d.projects));
+      else if (f === "progress") openPanel("เรียงตามความคืบหน้า", "เฉลี่ย " + k.avgProgress + "%", projRows(d.projects.slice().sort(function (a, b) { return b.progress - a.progress; })));
+      else if (f === "late") openPanel("งานล่าช้า", (d.lateTasks || []).length + " งาน", (d.lateTasks || []).length ? taskRows(d.lateTasks) : '<div class="empty">ไม่มีงานล่าช้า 🎉</div>');
+      else if (f === "issues") openPanel("ปัญหาค้าง", (d.issues || []).length + " รายการ", (d.issues || []).length ? issueRows(d.issues) : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>');
+    }
+    [].forEach.call(document.querySelectorAll("#kpis .kpi"), function (card) {
+      var f = card.getAttribute("data-filter");
+      card.addEventListener("click", function () { runFilter(f); });
+      card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); runFilter(f); } });
+    });
 
     // projects (คลิกเพื่อดูรายละเอียด) — icon badge + gradient bar
     document.getElementById("projects").innerHTML = d.projects.map(function (p) {
@@ -154,7 +194,7 @@
         var total = w[0] + w[1];
         var h = Math.round((total / maxTotal) * 100);
         var donePct = total ? Math.round((w[0] / total) * 100) : 0;
-        return '<div class="col" data-day="' + i + '"><div class="stk" style="height:' + h + '%">' +
+        return '<div class="col dr-trigger" data-day="' + i + '"><div class="stk" style="height:' + h + '%">' +
           '<span class="seg-done" style="height:' + donePct + '%;display:block"></span>' +
           '<span class="seg-prog" style="height:' + (100 - donePct) + '%;display:block"></span>' +
           '</div><small>' + (labels[i] || "") + '</small></div>';

@@ -315,6 +315,11 @@ button { font-family: inherit; cursor: pointer; }
 .k-late   { --kpi-tint: var(--st-late);  --kpi-grad: var(--grad-late); }
 .k-prob   { --kpi-tint: var(--st-prob);  --kpi-grad: var(--grad-prob); }
 .k-done   { --kpi-tint: var(--st-done);  --kpi-grad: var(--grad-done); }
+.kpi.rich.dr-trigger { cursor: pointer; transition: transform .14s, box-shadow .14s; }
+.kpi.rich.dr-trigger:hover { transform: translateY(-3px); box-shadow: 0 14px 30px color-mix(in srgb, var(--kpi-tint) 24%, transparent); }
+.kpi.rich.dr-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kpi .kfilter { display: block; margin-top: 10px; font-size: 11px; font-weight: 700; color: var(--kpi-tint); opacity: 0; transition: opacity .15s; }
+.kpi.rich.dr-trigger:hover .kfilter, .kpi.rich.dr-trigger:focus-visible .kfilter { opacity: .95; }
 
 /* ---- hero: progress ring ---- */
 .hero { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center;
