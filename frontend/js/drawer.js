@@ -141,6 +141,34 @@ window.DR = (function () {
     });
   }
 
+  // ---- เปิดงานแบบเต็ม: สรุป + ประวัติการอัพเดท (โหลด async) ----
+  function openTask(t, usePush) {
+    var fn = usePush ? Drawer.push : Drawer.open;
+    fn(esc(t.title), esc(t.project || ""), taskDetail(t) +
+      '<div class="dload empty" style="padding:18px">⏳ กำลังโหลดประวัติงาน…</div>',
+      function (db) {
+        API.getTaskUpdates(t.id).then(function (ups) {
+          var box = db.querySelector(".dload");
+          if (!box) return;
+          if (!ups || !ups.length) { box.textContent = "ยังไม่มีการอัพเดทงานนี้"; return; }
+          var list = ups.slice().reverse();   // ล่าสุดขึ้นก่อน
+          box.outerHTML =
+            '<div class="p-label" style="margin:18px 0 10px">🕐 ประวัติการอัพเดท · ' + ups.length + ' ครั้ง</div>' +
+            list.map(function (u) {
+              var col = Number(u.progress) >= 100 ? "var(--st-done)" : "var(--st-prog)";
+              return '<div class="di"><div class="dtop"><b>อัพเดทเป็น <span style="color:' + col + '">' + u.progress + '%</span></b>' +
+                '<span class="muted" style="font-size:11.5px">' + fmtTime(u.createdAt) + '</span></div>' +
+                '<div class="dmeta">👷 ' + esc(u.userName) + '</div>' +
+                '<div class="bar" style="margin-bottom:' + (u.note ? '8px' : '0') + '"><i style="width:' + u.progress + '%;background:' + col + '"></i></div>' +
+                (u.note ? '<div class="dnote">' + esc(u.note) + '</div>' : '') + '</div>';
+            }).join("");
+        }).catch(function () {
+          var box = db.querySelector(".dload");
+          if (box) box.textContent = "โหลดประวัติไม่สำเร็จ";
+        });
+      });
+  }
+
   // ---- ตอบกลับปัญหาได้จากใน drawer (ทุกหน้า) ----
   function issueReplyForm() {
     return '<div class="field" style="margin-top:16px"><label class="fl">💬 ตอบกลับถึงผู้แจ้ง</label>' +
@@ -176,7 +204,7 @@ window.DR = (function () {
   }
 
   return {
-    taskRow: taskRow, taskDetail: taskDetail,
+    taskRow: taskRow, taskDetail: taskDetail, openTask: openTask,
     issueRow: issueRow, issueDetail: issueDetail, openIssue: openIssue,
     issueReplyForm: issueReplyForm, wireIssueReply: wireIssueReply,
     projRow: projRow, projDetail: projDetail, contractorRow: contractorRow,

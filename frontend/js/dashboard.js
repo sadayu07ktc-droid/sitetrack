@@ -99,7 +99,7 @@
       else if (f === "progress") openList("เรียงตามความคืบหน้า", "เฉลี่ย " + k.avgProgress + "%",
         d.projects.slice().sort(function (a, b) { return b.progress - a.progress; }), DR.projRow, pickProject);
       else if (f === "late") openList("งานล่าช้า", (d.lateTasks || []).length + " งาน", d.lateTasks || [], DR.taskRow,
-        function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); });
+        function (t) { DR.openTask(t, true); });
       else if (f === "issues") openList("ปัญหาค้าง", (d.issues || []).length + " รายการ", d.issues || [], DR.issueRow,
         function (s) { DR.openIssue(s, true, function () { location.reload(); }); });
     }

@@ -17,10 +17,10 @@
   };
 
   // KPI filter -> drawer (with drill-down)
-  function listPanel(title, items, rowFn, detailFn) {
+  function listPanel(title, items, rowFn, onPick) {
     Drawer.open(title, items.length + " รายการ",
       items.length ? items.map(rowFn).join("") : '<div class="empty">ไม่มีข้อมูล</div>',
-      function (db) { DR.wireList(db, items, function (it) { Drawer.push(esc(it.title || it.name), "", detailFn(it)); }); });
+      function (db) { DR.wireList(db, items, onPick); });
   }
   // รายละเอียดผู้รับเหมา (งานในมือ + เจาะเข้าแต่ละงานได้)
   function contractorPanel(c, usePush) {
@@ -28,7 +28,7 @@
     var body = tasks.length ? tasks.map(DR.taskRow).join("") : '<div class="empty">ยังไม่มีงาน</div>';
     var fn = usePush ? Drawer.push : Drawer.open;
     fn(c.name, esc(c.skill) + " · " + tasks.length + " งาน", body,
-      function (db) { DR.wireList(db, tasks, function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); }); });
+      function (db) { DR.wireList(db, tasks, function (t) { DR.openTask(t, true); }); });
   }
   function openContractors() {
     var cs = D.contractors;
@@ -46,13 +46,13 @@
     });
   }
   function openFilter(f) {
-    if (f === "pending") listPanel("งานรออนุมัติ", D.pending, DR.taskRow, DR.taskDetail);
+    if (f === "pending") listPanel("งานรออนุมัติ", D.pending, DR.taskRow, function (t) { DR.openTask(t, true); });
     else if (f === "issues") {
       Drawer.open("ปัญหาที่ต้องตอบ", D.openIssues.length + " รายการ",
         D.openIssues.length ? D.openIssues.map(DR.issueRow).join("") : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>',
         function (db) { DR.wireList(db, D.openIssues, function (s) { DR.openIssue(s, true, load); }); });
     }
-    else if (f === "tasks") listPanel("งานทั้งหมด", D.tasks, DR.taskRow, DR.taskDetail);
+    else if (f === "tasks") listPanel("งานทั้งหมด", D.tasks, DR.taskRow, function (t) { DR.openTask(t, true); });
     else if (f === "contractors") openContractors();
   }
 
@@ -95,7 +95,7 @@
         '<div class="acts"><button class="btn btn-primary" onclick="PM.approve(\'' + t.id + '\')">✓ อนุมัติ</button>' +
         '<button class="btn btn-ghost" onclick="PM.reject(\'' + t.id + '\')">ตีกลับแก้</button></div></div>';
     }).join("");
-    wireRows(box, D.pending, function (t) { Drawer.open(esc(t.title), "งานรออนุมัติ", DR.taskDetail(t)); });
+    wireRows(box, D.pending, function (t) { DR.openTask(t, false); });
   }
 
   function renderIssues() {
@@ -127,7 +127,7 @@
     box.innerHTML =
       '<table class="table"><thead><tr><th>งาน</th><th>ผู้รับเหมา</th><th>คืบหน้า</th><th>สถานะ</th></tr></thead><tbody>' +
       rows + '</tbody></table>';
-    wireRows(box, D.tasks, function (t) { Drawer.open(esc(t.title), esc(t.project), DR.taskDetail(t)); });
+    wireRows(box, D.tasks, function (t) { DR.openTask(t, false); });
   }
 
   function renderContractors() {

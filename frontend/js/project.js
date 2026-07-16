@@ -47,8 +47,7 @@
     // จิ้มแถวงาน / ปัญหา เพื่อดูรายละเอียดใน drawer
     [].forEach.call(document.querySelectorAll("#content table tbody tr[data-idx]"), function (row) {
       row.addEventListener("click", function () {
-        var t = d.tasks[+row.getAttribute("data-idx")];
-        Drawer.open(esc(t.title), esc(t.project || p.name), DR.taskDetail(t));
+        DR.openTask(d.tasks[+row.getAttribute("data-idx")], false);
       });
     });
     [].forEach.call(document.querySelectorAll("#content .act-row[data-idx]"), function (row) {

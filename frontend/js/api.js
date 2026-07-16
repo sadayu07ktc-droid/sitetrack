@@ -55,6 +55,11 @@ window.API = (function () {
       return callGAS("getTask", { id: id });
     },
 
+    getTaskUpdates: function (taskId) {
+      if (USE_MOCK) return delay([]);
+      return callGAS("getTaskUpdates", { taskId: taskId });
+    },
+
     updateProgress: function (taskId, progress, note) {
       if (USE_MOCK) {
         const t = MOCK.tasks.find(x => x.id === taskId);

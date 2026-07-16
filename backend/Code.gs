@@ -45,6 +45,7 @@ function doPost(e) {
       case 'getDashboard':   data = getDashboard_(); break;
       case 'getTasks':       data = getTasks_(payload.userId); break;
       case 'getTask':        data = getTask_(payload.id); break;
+      case 'getTaskUpdates': data = rows_('Updates').filter(function (u) { return String(u.taskId) === String(payload.taskId); }); break;
       case 'updateProgress': data = updateProgress_(payload); break;
       case 'reportIssue':    data = reportIssue_(payload); break;
       case 'getPMData':      data = getPMData_(); break;
