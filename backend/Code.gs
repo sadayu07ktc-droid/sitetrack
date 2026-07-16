@@ -50,6 +50,7 @@ function doPost(e) {
       case 'getPMData':      data = getPMData_(); break;
       case 'getContractors': data = getContractors_(); break;
       case 'assignTask':     data = assignTask_(payload); break;
+      case 'createProject':  data = createProject_(payload); break;
       case 'approveTask':    data = setTaskStatus_(payload.taskId, 'approved'); break;
       case 'rejectTask':     data = rejectTask_(payload); break;
       case 'resolveIssue':   data = resolveIssue_(payload); break;
@@ -191,6 +192,14 @@ function assignTask_(p) {
   var lineId = lineIdOf_(p.contractorId);
   if (lineId) notifyLine_([lineId], flexTask_('🔵 งานใหม่ที่ได้รับมอบหมาย', task, 'var(--st-prog)'));
   return { ok: true, task: task };
+}
+function createProject_(p) {
+  var proj = {
+    id: uid_('p'), name: p.name, owner: p.owner || '', budget: Number(p.budget) || 0,
+    start: p.start || now_().slice(0, 10), due: p.due || '', progress: 0, status: 'on_track'
+  };
+  appendRow_('Projects', proj);
+  return { ok: true, project: proj };
 }
 function setTaskStatus_(taskId, status) {
   updateCell_('Tasks', 'id', taskId, 'status', status);

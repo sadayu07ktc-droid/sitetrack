@@ -141,12 +141,43 @@
     var projOpts = D.projects.map(function (p) { return '<option value="' + p.id + '">' + esc(p.name) + '</option>'; }).join("");
     var conOpts = D.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + ' — ' + esc(c.skill) + '</option>'; }).join("");
     document.getElementById("assignForm").innerHTML =
-      '<div class="field"><label class="fl">โครงการ</label><select id="aProject">' + projOpts + '</select></div>' +
+      '<div class="field"><label class="fl" style="display:flex;justify-content:space-between;align-items:center">โครงการ' +
+        '<button type="button" id="newProjBtn" style="background:none;border:0;cursor:pointer;color:var(--accent);font-size:12px;font-weight:700;font-family:inherit">＋ สร้างโครงการใหม่</button></label>' +
+        '<select id="aProject">' + projOpts + '</select></div>' +
       '<div class="field"><label class="fl">ผู้รับเหมา</label><select id="aContractor">' + conOpts + '</select></div>' +
       '<div class="field"><label class="fl">ชื่องาน</label><input id="aTitle" placeholder="เช่น ติดตั้งฝ้าเพดานชั้น 6" /></div>' +
       '<div class="field"><label class="fl">ตำแหน่ง</label><input id="aLoc" placeholder="เช่น ชั้น 6" /></div>' +
       '<div class="field"><label class="fl">กำหนดส่ง</label><input id="aDue" type="date" /></div>' +
       '<button class="btn btn-primary btn-block" onclick="PM.assign()">มอบหมายงาน</button>';
+    document.getElementById("newProjBtn").addEventListener("click", openNewProject);
+  }
+
+  /* ---------- สร้างโครงการใหม่ ---------- */
+  function openNewProject() {
+    document.getElementById("modalRoot").innerHTML =
+      '<div class="modal-bg" onclick="if(event.target===this)PM.closeModal()"><div class="modal">' +
+      '<h3>สร้างโครงการใหม่</h3><div class="msub">บันทึกลงระบบแล้วมอบหมายงานได้ทันที</div>' +
+      '<div class="field"><label class="fl">ชื่อโครงการ *</label><input id="npName" placeholder="เช่น อาคารจอดรถ สาขา 2" /></div>' +
+      '<div class="field"><label class="fl">เจ้าของโครงการ</label><input id="npOwner" placeholder="เช่น บจก. เมืองทอง" /></div>' +
+      '<div class="field"><label class="fl">งบประมาณ (บาท)</label><input id="npBudget" type="number" placeholder="เช่น 5000000" /></div>' +
+      '<div class="field"><label class="fl">กำหนดส่ง</label><input id="npDue" type="date" /></div>' +
+      '<div class="mfoot"><button class="btn btn-primary btn-block" onclick="PM.submitNewProject()">สร้างโครงการ</button>' +
+      '<button class="btn btn-ghost btn-block" onclick="PM.closeModal()">ยกเลิก</button></div></div></div>';
+    document.getElementById("npName").focus();
+  }
+  function submitNewProject() {
+    var name = document.getElementById("npName").value.trim();
+    if (!name) { UI.toast("กรุณากรอกชื่อโครงการ", "warn"); return; }
+    API.createProject({
+      name: name,
+      owner: document.getElementById("npOwner").value.trim(),
+      budget: document.getElementById("npBudget").value,
+      due: document.getElementById("npDue").value
+    }).then(function () {
+      closeModal();
+      UI.toast("สร้างโครงการ “" + name + "” แล้ว", "ok");
+      load();   // โหลดใหม่ → โครงการโผล่ใน dropdown ทันที
+    });
   }
 
   /* ---------- actions ---------- */
@@ -192,5 +223,6 @@
 
   load();
   window.PM = { approve: approve, reject: reject, assign: assign,
-    openResolve: openResolve, submitResolve: submitResolve, closeModal: closeModal };
+    openResolve: openResolve, submitResolve: submitResolve, closeModal: closeModal,
+    openNewProject: openNewProject, submitNewProject: submitNewProject };
 })();

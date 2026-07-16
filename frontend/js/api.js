@@ -102,6 +102,16 @@ window.API = (function () {
       return callGAS("getContractors");
     },
 
+    createProject: function (data) {
+      if (USE_MOCK) {
+        var proj = { id: "p" + (MOCK.projects.length + 1), name: data.name, owner: data.owner || "",
+          budget: Number(data.budget) || 0, progress: 0, due: data.due || "", status: "on_track" };
+        MOCK.projects.push(proj);
+        return delay({ ok: true, project: proj });
+      }
+      return callGAS("createProject", data);
+    },
+
     assignTask: function (data) {
       if (USE_MOCK) {
         var proj = MOCK.projects.find(p => p.id === data.projectId);
