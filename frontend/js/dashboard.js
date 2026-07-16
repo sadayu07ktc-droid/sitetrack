@@ -4,33 +4,13 @@
 (function () {
   UI.initTheme();
 
-  var SEV = {
-    high:   { cls: "s-prob", th: "ด่วน" },
-    medium: { cls: "s-late", th: "รอแก้" },
-    low:    { cls: "s-prog", th: "ทั่วไป" }
-  };
-
+  // SEV/GRAD มาจาก mock-data.js, esc/fmtTime/Drawer/DR มาจาก drawer.js (โหลดก่อนไฟล์นี้)
   var ICONS = {
     building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6l7-3 7 3v15"/><path d="M2 21h20"/><path d="M9 9h.01M14 9h.01M9 13h.01M14 13h.01M9 17h.01M14 17h.01"/></svg>',
     trend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>',
     clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>'
   };
-  function GRAD(p, status) {
-    if (status === "problem") return "var(--grad-prob)";
-    if (status === "late") return "var(--grad-late)";
-    if (p >= 100) return "var(--grad-done)";
-    return "var(--grad-prog)";
-  }
-  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function fmtTime(v) {
-    var d = new Date(v);
-    if (isNaN(d.getTime())) return esc(v);
-    try {
-      return d.toLocaleString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    } catch (e) { return esc(v); }
-  }
-
   // ---- chart tooltip ----
   var DAYNAMES = ["วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
   var tipEl;
@@ -47,34 +27,8 @@
   function moveTip(e) { if (tipEl) { tipEl.style.left = e.clientX + "px"; tipEl.style.top = e.clientY + "px"; } }
   function hideTip() { if (tipEl) tipEl.classList.remove("show"); }
 
-  // ---- right drawer ----
-  var drawerBg, drawerEl;
-  function ensureDrawer() {
-    if (drawerBg) return;
-    drawerBg = document.createElement("div"); drawerBg.className = "drawer-bg";
-    drawerEl = document.createElement("div"); drawerEl.className = "drawer";
-    document.body.appendChild(drawerBg); document.body.appendChild(drawerEl);
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
-    // click outside (but not on a chart bar) closes; clicking a bar switches the day
-    document.addEventListener("click", function (e) {
-      if (!drawerEl.classList.contains("open")) return;
-      if (e.target.closest(".drawer") || e.target.closest(".dr-trigger")) return;
-      closeDrawer();
-    });
-  }
-  // generic side panel — title + optional subtitle + body html
-  function openPanel(title, subHtml, bodyHtml) {
-    ensureDrawer();
-    drawerEl.innerHTML =
-      '<div class="dh"><div><h3>' + title + '</h3>' + (subHtml ? '<div class="dsub">' + subHtml + '</div>' : '') + '</div>' +
-      '<button class="dclose" aria-label="ปิด">✕</button></div>' +
-      '<div class="db">' + (bodyHtml || '<div class="empty">ไม่มีข้อมูล</div>') + '</div>';
-    drawerEl.querySelector(".dclose").addEventListener("click", closeDrawer);
-    drawerBg.classList.add("open");
-    void drawerEl.offsetWidth;               // force reflow so the slide-in transition runs
-    drawerEl.classList.add("open");
-  }
-  function openDrawer(i, w, items) {
+  // ---- weekly day drawer (ใช้ Drawer กลางจาก drawer.js) ----
+  function openDayDrawer(i, w, items) {
     var list = (items || []).slice().reverse();
     var body = list.length ? list.map(function (u) {
       var col = u.progress >= 100 ? "var(--st-done)" : "var(--st-prog)";
@@ -86,36 +40,7 @@
     }).join("") : '<div class="empty">ไม่มีงานอัพเดทในวันนี้</div>';
     var sub = '<span><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + '</span>' +
               '<span><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + '</span>';
-    openPanel("งาน" + DAYNAMES[i], sub, body);
-  }
-  // row renderers for KPI filter panels
-  function projRows(projects) {
-    return projects.map(function (p) {
-      var g = GRAD(p.progress, p.status), st = STATUS[p.status] || STATUS.on_track;
-      return '<div class="di"><div class="dtop"><b>' + esc(p.name) + '</b><span class="pct">' + p.progress + '%</span></div>' +
-        '<div class="dmeta"><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span> · ' + esc(p.owner) + '</div>' +
-        '<div class="bar"><i style="width:' + p.progress + '%;background:' + g + '"></i></div></div>';
-    }).join("");
-  }
-  function taskRows(tasks) {
-    return tasks.map(function (t) {
-      return '<div class="di"><div class="dtop"><b>' + esc(t.title) + '</b><span class="pct" style="color:var(--st-late)">' + t.progress + '%</span></div>' +
-        '<div class="dmeta">📍 ' + esc(t.project) + ' · ' + esc(t.location || "") + ' · 👷 ' + esc(t.assignee) + '</div>' +
-        '<div class="bar"><i style="width:' + t.progress + '%;background:var(--grad-late)"></i></div></div>';
-    }).join("");
-  }
-  function issueRows(issues) {
-    return issues.map(function (s) {
-      var sv = SEV[s.severity] || SEV.low;
-      return '<div class="di"><div class="dtop"><b>' + esc(s.title) + '</b><span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>' +
-        '<div class="dmeta">📍 ' + esc(s.project) + ' · 👷 ' + esc(s.reporter) + ' · 🕒 ' + fmtTime(s.createdAt) + '</div>' +
-        (s.detail ? '<div class="dnote">' + esc(s.detail) + '</div>' : '') + '</div>';
-    }).join("");
-  }
-  function closeDrawer() {
-    if (!drawerEl) return;
-    drawerEl.classList.remove("open"); drawerBg.classList.remove("open");
-    var a = document.querySelector("#chart .col.active"); if (a) a.classList.remove("active");
+    Drawer.open("งาน" + DAYNAMES[i], sub, body);
   }
 
   function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
@@ -162,12 +87,21 @@
         '<div class="val tabular">' + x.val + (x.unit ? '<small>' + x.unit + '</small>' : '') + '</div>' +
         '<div class="trend ' + x.tc + '">' + x.trend + '</div><span class="kfilter">แตะเพื่อดู →</span></div>';
     }).join("");
-    // KPI click → filter panel
+    // KPI click → filter panel (คลิกรายการใน drawer เพื่อดูรายละเอียดต่ออีกชั้น)
+    function openList(title, sub, items, rowFn, onPick) {
+      Drawer.open(title, sub,
+        items.length ? items.map(rowFn).join("") : '<div class="empty">ไม่มีข้อมูล 🎉</div>',
+        function (db) { DR.wireList(db, items, onPick); });
+    }
+    function pickProject(p) { Drawer.push(esc(p.name), esc(p.owner), DR.projDetail(p)); }
     function runFilter(f) {
-      if (f === "projects") openPanel("ทุกโครงการ", d.projects.length + " โครงการ", projRows(d.projects));
-      else if (f === "progress") openPanel("เรียงตามความคืบหน้า", "เฉลี่ย " + k.avgProgress + "%", projRows(d.projects.slice().sort(function (a, b) { return b.progress - a.progress; })));
-      else if (f === "late") openPanel("งานล่าช้า", (d.lateTasks || []).length + " งาน", (d.lateTasks || []).length ? taskRows(d.lateTasks) : '<div class="empty">ไม่มีงานล่าช้า 🎉</div>');
-      else if (f === "issues") openPanel("ปัญหาค้าง", (d.issues || []).length + " รายการ", (d.issues || []).length ? issueRows(d.issues) : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>');
+      if (f === "projects") openList("ทุกโครงการ", d.projects.length + " โครงการ", d.projects, DR.projRow, pickProject);
+      else if (f === "progress") openList("เรียงตามความคืบหน้า", "เฉลี่ย " + k.avgProgress + "%",
+        d.projects.slice().sort(function (a, b) { return b.progress - a.progress; }), DR.projRow, pickProject);
+      else if (f === "late") openList("งานล่าช้า", (d.lateTasks || []).length + " งาน", d.lateTasks || [], DR.taskRow,
+        function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); });
+      else if (f === "issues") openList("ปัญหาค้าง", (d.issues || []).length + " รายการ", d.issues || [], DR.issueRow,
+        function (s) { Drawer.push(esc(s.title), "", DR.issueDetail(s)); });
     }
     [].forEach.call(document.querySelectorAll("#kpis .kpi"), function (card) {
       var f = card.getAttribute("data-filter");
@@ -209,7 +143,7 @@
         colEl.addEventListener("click", function () {
           [].forEach.call(cols, function (c) { c.classList.remove("active"); });
           colEl.classList.add("active"); hideTip();
-          openDrawer(i, weekly[i], weeklyItems[i] || []);
+          openDayDrawer(i, weekly[i], weeklyItems[i] || []);
         });
       });
     } else {

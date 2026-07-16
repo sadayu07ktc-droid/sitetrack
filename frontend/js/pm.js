@@ -9,6 +9,37 @@
 
   function esc(s) { return String(s == null ? "" : s); }
 
+  var ICONS = {
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
+  };
+
+  // KPI filter -> drawer (with drill-down)
+  function listPanel(title, items, rowFn, detailFn) {
+    Drawer.open(title, items.length + " รายการ",
+      items.length ? items.map(rowFn).join("") : '<div class="empty">ไม่มีข้อมูล</div>',
+      function (db) { DR.wireList(db, items, function (it) { Drawer.push(esc(it.title || it.name), "", detailFn(it)); }); });
+  }
+  function openContractors() {
+    var cs = D.contractors;
+    Drawer.open("ผู้รับเหมา", cs.length + " คน", cs.map(DR.contractorRow).join(""), function (db) {
+      DR.wireList(db, cs, function (c) {
+        var tasks = D.tasks.filter(function (t) { return String(t.contractorId) === String(c.id); });
+        Drawer.push(c.name, esc(c.skill) + " · " + tasks.length + " งาน",
+          tasks.length ? tasks.map(DR.taskRow).join("") : '<div class="empty">ยังไม่มีงาน</div>',
+          function (db2) { DR.wireList(db2, tasks, function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); }); });
+      });
+    });
+  }
+  function openFilter(f) {
+    if (f === "pending") listPanel("งานรออนุมัติ", D.pending, DR.taskRow, DR.taskDetail);
+    else if (f === "issues") listPanel("ปัญหาที่ต้องตอบ", D.openIssues, DR.issueRow, DR.issueDetail);
+    else if (f === "tasks") listPanel("งานทั้งหมด", D.tasks, DR.taskRow, DR.taskDetail);
+    else if (f === "contractors") openContractors();
+  }
+
   function load() {
     API.getPMData().then(function (d) {
       D = d;
@@ -20,15 +51,21 @@
 
   function renderKpis() {
     var kp = [
-      { lab: "งานรออนุมัติ", val: D.pending.length, color: "var(--st-late)" },
-      { lab: "ปัญหาที่ต้องตอบ", val: D.openIssues.length, color: "var(--st-prob)" },
-      { lab: "ผู้รับเหมา", val: D.contractors.length, color: "" },
-      { lab: "งานทั้งหมด", val: D.tasks.length, color: "" }
+      { lab: "งานรออนุมัติ", val: D.pending.length, cls: "k-late", ic: ICONS.check, f: "pending" },
+      { lab: "ปัญหาที่ต้องตอบ", val: D.openIssues.length, cls: "k-prob", ic: ICONS.alert, f: "issues" },
+      { lab: "ผู้รับเหมา", val: D.contractors.length, cls: "k-prog", ic: ICONS.people, f: "contractors" },
+      { lab: "งานทั้งหมด", val: D.tasks.length, cls: "k-accent", ic: ICONS.list, f: "tasks" }
     ];
     document.getElementById("kpis").innerHTML = kp.map(function (x) {
-      return '<div class="kpi"><div class="lab">' + x.lab + '</div>' +
-        '<div class="val tabular"' + (x.color ? ' style="color:' + x.color + '"' : '') + '>' + x.val + '</div></div>';
+      return '<div class="kpi rich dr-trigger ' + x.cls + '" data-filter="' + x.f + '" role="button" tabindex="0">' +
+        '<div class="kicon">' + x.ic + '</div><div class="lab">' + x.lab + '</div>' +
+        '<div class="val tabular">' + x.val + '</div><span class="kfilter">แตะเพื่อดู →</span></div>';
     }).join("");
+    [].forEach.call(document.querySelectorAll("#kpis .kpi"), function (card) {
+      var f = card.getAttribute("data-filter");
+      card.addEventListener("click", function () { openFilter(f); });
+      card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFilter(f); } });
+    });
   }
 
   function renderPending() {

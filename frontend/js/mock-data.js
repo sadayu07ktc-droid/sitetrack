@@ -71,3 +71,14 @@ window.PROGRESS_COLOR = function (p, status) {
   if (p >= 100) return "var(--st-done)";
   return "var(--st-prog)";
 };
+window.GRAD = function (p, status) {
+  if (status === "problem") return "var(--grad-prob)";
+  if (status === "late") return "var(--grad-late)";
+  if (p >= 100) return "var(--grad-done)";
+  return "var(--grad-prog)";
+};
+window.SEV = {
+  high:   { cls: "s-prob", th: "ด่วน" },
+  medium: { cls: "s-late", th: "รอแก้" },
+  low:    { cls: "s-prog", th: "ทั่วไป" }
+};
