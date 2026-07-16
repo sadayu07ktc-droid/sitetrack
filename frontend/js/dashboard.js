@@ -101,7 +101,7 @@
       else if (f === "late") openList("งานล่าช้า", (d.lateTasks || []).length + " งาน", d.lateTasks || [], DR.taskRow,
         function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); });
       else if (f === "issues") openList("ปัญหาค้าง", (d.issues || []).length + " รายการ", d.issues || [], DR.issueRow,
-        function (s) { Drawer.push(esc(s.title), "", DR.issueDetail(s)); });
+        function (s) { DR.openIssue(s, true, function () { location.reload(); }); });
     }
     [].forEach.call(document.querySelectorAll("#kpis .kpi"), function (card) {
       var f = card.getAttribute("data-filter");
@@ -168,7 +168,7 @@
     [].forEach.call(document.querySelectorAll("#issues .issue-row"), function (row) {
       row.addEventListener("click", function () {
         var s = d.issues[+row.getAttribute("data-idx")];
-        Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s));
+        DR.openIssue(s, false, function () { location.reload(); });
       });
     });
 

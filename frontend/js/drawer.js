@@ -15,6 +15,14 @@ window.fmtTime = function (v) {
     return d.toLocaleString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   } catch (e) { return window.esc(v); }
 };
+window.fmtDate = function (v) {
+  if (v == null || v === "") return "-";
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return window.esc(v);
+  try {
+    return d.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", year: "numeric" });
+  } catch (e) { return window.esc(v); }
+};
 
 window.Drawer = (function () {
   var bg, el, stack = [];
@@ -80,7 +88,7 @@ window.DR = (function () {
       '<div class="drow"><span>โครงการ</span><b>' + esc(t.project) + '</b></div>' +
       '<div class="drow"><span>ตำแหน่ง</span><b>' + esc(t.location || "-") + '</b></div>' +
       '<div class="drow"><span>ผู้รับเหมา</span><b>' + esc(t.assignee) + '</b></div>' +
-      '<div class="drow"><span>กำหนดส่ง</span><b>' + esc(t.due || "-") + '</b></div></div>';
+      '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(t.due) + '</b></div></div>';
   }
 
   function issueRow(s, i) {
@@ -115,7 +123,7 @@ window.DR = (function () {
       bar(p.progress, g) +
       '<div class="drow"><span>สถานะ</span><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span></div>' +
       '<div class="drow"><span>เจ้าของโครงการ</span><b>' + esc(p.owner) + '</b></div>' +
-      '<div class="drow"><span>กำหนดส่ง</span><b>' + esc(p.due || "-") + '</b></div>' +
+      '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(p.due) + '</b></div>' +
       '<a class="btn btn-primary btn-block" style="margin-top:14px;text-decoration:none" href="project.html?id=' + esc(p.id) + '">เปิดหน้าโครงการเต็ม →</a></div>';
   }
 
@@ -133,9 +141,44 @@ window.DR = (function () {
     });
   }
 
+  // ---- ตอบกลับปัญหาได้จากใน drawer (ทุกหน้า) ----
+  function issueReplyForm() {
+    return '<div class="field" style="margin-top:16px"><label class="fl">💬 ตอบกลับถึงผู้แจ้ง</label>' +
+      '<textarea class="dr-reply-text" placeholder="เช่น รับทราบ กำลังประสานสั่งวัสดุใหม่ ถึงพรุ่งนี้เช้า"></textarea></div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn btn-primary btn-block dr-reply-send">ส่งคำตอบ</button>' +
+      '<button class="btn btn-ghost btn-block dr-reply-close">ตอบ + ปิดเรื่อง</button></div>' +
+      '<div class="empty" style="padding:10px 4px 0;font-size:11.5px">ระบบจะแจ้งคำตอบกลับหาผู้แจ้งทาง LINE</div>';
+  }
+  function wireIssueReply(dbEl, issue, onDone) {
+    var ta = dbEl.querySelector(".dr-reply-text");
+    if (!ta) return;
+    function submit(closeIt) {
+      var msg = ta.value.trim();
+      if (!msg && !closeIt) { UI.toast("พิมพ์ข้อความก่อนส่งครับ", "warn"); return; }
+      API.resolveIssue(issue.id, msg, closeIt).then(function () {
+        UI.toast(closeIt ? "ปิดเรื่องแล้ว · แจ้งผู้แจ้งทาง LINE" : "ส่งคำตอบแล้ว · แจ้งผู้แจ้งทาง LINE", "ok");
+        Drawer.close();
+        if (onDone) onDone();
+      });
+    }
+    dbEl.querySelector(".dr-reply-send").addEventListener("click", function () { submit(false); });
+    dbEl.querySelector(".dr-reply-close").addEventListener("click", function () { submit(true); });
+  }
+  // เปิดรายละเอียดปัญหา + ฟอร์มตอบ (ใช้ได้จากทุกหน้า) — usePush=true เมื่ออยู่ใน drill
+  function openIssue(s, usePush, onDone) {
+    var open = s.status === "open";
+    var body = issueDetail(s) + (open ? issueReplyForm() : "");
+    var fn = usePush ? Drawer.push : Drawer.open;
+    fn(esc(s.title), esc(s.project), body, function (db) {
+      if (open) wireIssueReply(db, s, onDone);
+    });
+  }
+
   return {
     taskRow: taskRow, taskDetail: taskDetail,
-    issueRow: issueRow, issueDetail: issueDetail,
+    issueRow: issueRow, issueDetail: issueDetail, openIssue: openIssue,
+    issueReplyForm: issueReplyForm, wireIssueReply: wireIssueReply,
     projRow: projRow, projDetail: projDetail, contractorRow: contractorRow,
     wireList: wireList
   };

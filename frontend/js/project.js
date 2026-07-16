@@ -5,11 +5,7 @@
   UI.initTheme();
   var SEV = { high: { cls: "s-prob", th: "ด่วน" }, medium: { cls: "s-late", th: "รอแก้" }, low: { cls: "s-prog", th: "ทั่วไป" } };
 
-  function esc(s) { return String(s == null ? "" : s); }
-  function fmtDate(iso) {
-    var m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-    var p = String(iso).split("-"); return p.length === 3 ? (+p[2]) + " " + m[+p[1] - 1] + " " + ((+p[0]) + 543) : iso;
-  }
+  // esc/fmtDate/fmtTime มาจาก drawer.js (global) — รองรับทั้ง "2026-10-30" และ ISO string จากชีต
   function param(k) { return new URLSearchParams(location.search).get(k); }
 
   var id = param("id") || "p1";
@@ -58,7 +54,7 @@
     [].forEach.call(document.querySelectorAll("#content .act-row[data-idx]"), function (row) {
       row.addEventListener("click", function () {
         var s = d.issues[+row.getAttribute("data-idx")];
-        Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s));
+        DR.openIssue(s, false, function () { location.reload(); });
       });
     });
   });
@@ -85,7 +81,7 @@
       var sv = SEV[s.severity] || SEV.low;
       var closed = s.status === "closed";
       return '<div class="act-row tap dr-trigger" data-idx="' + i + '"><div class="top"><div><b>' + esc(s.title) + '</b>' +
-        '<div class="sub">แจ้งโดย ' + esc(s.reporter) + ' · ' + esc(s.createdAt) + '</div></div>' +
+        '<div class="sub">แจ้งโดย ' + esc(s.reporter) + ' · ' + fmtTime(s.createdAt) + '</div></div>' +
         (closed ? '<span class="status s-done"><span class="d"></span>ปิดแล้ว</span>'
                 : '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span>') + '</div>' +
         (s.detail ? '<div class="detail">' + esc(s.detail) + '</div>' : '') +

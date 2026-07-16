@@ -47,7 +47,11 @@
   }
   function openFilter(f) {
     if (f === "pending") listPanel("งานรออนุมัติ", D.pending, DR.taskRow, DR.taskDetail);
-    else if (f === "issues") listPanel("ปัญหาที่ต้องตอบ", D.openIssues, DR.issueRow, DR.issueDetail);
+    else if (f === "issues") {
+      Drawer.open("ปัญหาที่ต้องตอบ", D.openIssues.length + " รายการ",
+        D.openIssues.length ? D.openIssues.map(DR.issueRow).join("") : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>',
+        function (db) { DR.wireList(db, D.openIssues, function (s) { DR.openIssue(s, true, load); }); });
+    }
     else if (f === "tasks") listPanel("งานทั้งหมด", D.tasks, DR.taskRow, DR.taskDetail);
     else if (f === "contractors") openContractors();
   }
@@ -106,7 +110,7 @@
         (s.detail ? '<div class="detail">' + esc(s.detail) + '</div>' : '') +
         '<div class="acts"><button class="btn btn-primary" onclick="PM.openResolve(\'' + s.id + '\')">ตอบ / ปิดเรื่อง</button></div></div>';
     }).join("");
-    wireRows(box, D.openIssues, function (s) { Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s)); });
+    wireRows(box, D.openIssues, function (s) { DR.openIssue(s, false, load); });
   }
 
   function renderAllTasks() {
