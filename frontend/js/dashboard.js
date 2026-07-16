@@ -37,9 +37,11 @@
   function ensureTip() { if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "chart-tip"; document.body.appendChild(tipEl); } return tipEl; }
   function showTip(e, i, w) {
     var t = ensureTip();
-    t.innerHTML = '<b>' + DAYNAMES[i] + '</b>' +
-      '<div class="row"><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + ' งาน</div>' +
-      '<div class="row"><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + ' งาน</div>';
+    var total = w[0] + w[1];
+    var dp = total ? Math.round(w[0] / total * 100) : 0;
+    t.innerHTML = '<b>' + DAYNAMES[i] + ' · ' + total + ' งาน</b>' +
+      '<div class="row"><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + ' งาน (' + dp + '%)</div>' +
+      '<div class="row"><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + ' งาน (' + (100 - dp) + '%)</div>';
     t.style.left = e.clientX + "px"; t.style.top = e.clientY + "px"; t.classList.add("show");
   }
   function moveTip(e) { if (tipEl) { tipEl.style.left = e.clientX + "px"; tipEl.style.top = e.clientY + "px"; } }
@@ -49,10 +51,16 @@
   var drawerBg, drawerEl;
   function ensureDrawer() {
     if (drawerBg) return;
-    drawerBg = document.createElement("div"); drawerBg.className = "drawer-bg"; drawerBg.addEventListener("click", closeDrawer);
+    drawerBg = document.createElement("div"); drawerBg.className = "drawer-bg";
     drawerEl = document.createElement("div"); drawerEl.className = "drawer";
     document.body.appendChild(drawerBg); document.body.appendChild(drawerEl);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+    // click outside (but not on a chart bar) closes; clicking a bar switches the day
+    document.addEventListener("click", function (e) {
+      if (!drawerEl.classList.contains("open")) return;
+      if (e.target.closest(".drawer") || e.target.closest("#chart")) return;
+      closeDrawer();
+    });
   }
   function openDrawer(i, w, items) {
     ensureDrawer();

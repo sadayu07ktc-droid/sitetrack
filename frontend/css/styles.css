@@ -376,8 +376,10 @@ svg.ic-svg { width: 1em; height: 1em; display: block; }
 .chart-tip b { font-size: 12.5px; }
 
 /* ---- right drawer ---- */
-.drawer-bg { position: fixed; inset: 0; background: rgba(20,18,14,.42); z-index: 600;
-  opacity: 0; transition: opacity .2s; }
+/* backdrop is non-blocking (pointer-events:none) so chart bars stay clickable
+   while the drawer is open — lets you jump straight to another day */
+.drawer-bg { position: fixed; inset: 0; background: transparent; z-index: 600;
+  pointer-events: none; opacity: 0; transition: opacity .2s; }
 .drawer-bg.open { opacity: 1; }
 .drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(410px, 92vw);
   background: var(--surface); border-left: 1px solid var(--line); box-shadow: -14px 0 44px rgba(0,0,0,.20);
