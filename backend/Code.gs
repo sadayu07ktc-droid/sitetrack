@@ -100,12 +100,15 @@ function getDashboard_() {
   // weekly: นับ Updates ต่อวัน (จ-ส) แยกเสร็จ(100%)/กำลังทำ
   var labels = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
   var weekly = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+  var weeklyItems = [[], [], [], [], [], []];   // รายละเอียดงานแต่ละวัน (สำหรับ drawer)
   updates.forEach(function (u) {
     var dt = new Date(u.createdAt);
     if (isNaN(dt.getTime())) return;
     var wd = dt.getDay();               // 0=อา..6=ส
     if (wd === 0) return;               // ข้ามวันอาทิตย์
-    if (Number(u.progress) >= 100) weekly[wd - 1][0]++; else weekly[wd - 1][1]++;
+    var idx = wd - 1, pg = Number(u.progress) || 0;
+    if (pg >= 100) weekly[idx][0]++; else weekly[idx][1]++;
+    weeklyItems[idx].push({ taskTitle: u.taskTitle, userName: u.userName, progress: pg, note: u.note || '', time: u.createdAt });
   });
   return {
     projects: projects,
@@ -116,6 +119,7 @@ function getDashboard_() {
     }),
     weekly: weekly,
     weekLabels: labels,
+    weeklyItems: weeklyItems,
     kpi: {
       projects: projects.length, avgProgress: avg,
       late: tasks.filter(function (t) { return t.status === 'late'; }).length,

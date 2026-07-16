@@ -22,6 +22,66 @@
     if (p >= 100) return "var(--grad-done)";
     return "var(--grad-prog)";
   }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function fmtTime(v) {
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return esc(v);
+    try {
+      return d.toLocaleString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return esc(v); }
+  }
+
+  // ---- chart tooltip ----
+  var DAYNAMES = ["วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+  var tipEl;
+  function ensureTip() { if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "chart-tip"; document.body.appendChild(tipEl); } return tipEl; }
+  function showTip(e, i, w) {
+    var t = ensureTip();
+    t.innerHTML = '<b>' + DAYNAMES[i] + '</b>' +
+      '<div class="row"><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + ' งาน</div>' +
+      '<div class="row"><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + ' งาน</div>';
+    t.style.left = e.clientX + "px"; t.style.top = e.clientY + "px"; t.classList.add("show");
+  }
+  function moveTip(e) { if (tipEl) { tipEl.style.left = e.clientX + "px"; tipEl.style.top = e.clientY + "px"; } }
+  function hideTip() { if (tipEl) tipEl.classList.remove("show"); }
+
+  // ---- right drawer ----
+  var drawerBg, drawerEl;
+  function ensureDrawer() {
+    if (drawerBg) return;
+    drawerBg = document.createElement("div"); drawerBg.className = "drawer-bg"; drawerBg.addEventListener("click", closeDrawer);
+    drawerEl = document.createElement("div"); drawerEl.className = "drawer";
+    document.body.appendChild(drawerBg); document.body.appendChild(drawerEl);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+  }
+  function openDrawer(i, w, items) {
+    ensureDrawer();
+    var list = (items || []).slice().reverse();
+    var body = list.length ? list.map(function (u) {
+      var col = u.progress >= 100 ? "var(--st-done)" : "var(--st-prog)";
+      return '<div class="di"><div class="dtop"><b>' + esc(u.taskTitle) + '</b>' +
+        '<span class="pct" style="color:' + col + '">' + u.progress + '%</span></div>' +
+        '<div class="dmeta">👷 ' + esc(u.userName) + ' · 🕒 ' + fmtTime(u.time) + '</div>' +
+        '<div class="bar" style="margin-bottom:' + (u.note ? '8px' : '0') + '"><i style="width:' + u.progress + '%;background:' + col + '"></i></div>' +
+        (u.note ? '<div class="dnote">' + esc(u.note) + '</div>' : '') + '</div>';
+    }).join("") : '<div class="empty">ไม่มีงานอัพเดทในวันนี้</div>';
+    drawerEl.innerHTML =
+      '<div class="dh"><div><h3>งาน' + DAYNAMES[i] + '</h3>' +
+        '<div class="dsub"><span><span class="sw" style="background:var(--st-done)"></span>เสร็จ ' + w[0] + '</span>' +
+        '<span><span class="sw" style="background:var(--st-prog)"></span>กำลังทำ ' + w[1] + '</span></div></div>' +
+        '<button class="dclose" aria-label="ปิด">✕</button></div>' +
+      '<div class="db">' + body + '</div>';
+    drawerEl.querySelector(".dclose").addEventListener("click", closeDrawer);
+    drawerBg.classList.add("open");
+    void drawerEl.offsetWidth;               // force reflow so the slide-in transition runs
+    drawerEl.classList.add("open");
+  }
+  function closeDrawer() {
+    if (!drawerEl) return;
+    drawerEl.classList.remove("open"); drawerBg.classList.remove("open");
+    var a = document.querySelector("#chart .col.active"); if (a) a.classList.remove("active");
+  }
+
   function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
 
   API.getDashboard().then(function (d) {
@@ -76,8 +136,8 @@
         '<div class="bar"><i style="width:' + p.progress + '%"></i></div></div></a>';
     }).join("");
 
-    // chart (กันกรณี backend ไม่ส่ง weekly / ไม่มีข้อมูล)
-    var weekly = d.weekly || [], labels = d.weekLabels || [];
+    // chart (กันกรณี backend ไม่ส่ง weekly / ไม่มีข้อมูล) + interactive
+    var weekly = d.weekly || [], labels = d.weekLabels || [], weeklyItems = d.weeklyItems || [];
     var hasWeek = weekly.length && weekly.some(function (w) { return (w[0] + w[1]) > 0; });
     if (hasWeek) {
       var maxTotal = Math.max.apply(null, weekly.map(function (w) { return w[0] + w[1]; })) || 1;
@@ -86,11 +146,24 @@
         var total = w[0] + w[1];
         var h = Math.round((total / maxTotal) * 100);
         var donePct = total ? Math.round((w[0] / total) * 100) : 0;
-        return '<div class="col"><div class="stk" style="height:' + h + '%">' +
+        return '<div class="col" data-day="' + i + '"><div class="stk" style="height:' + h + '%">' +
           '<span class="seg-done" style="height:' + donePct + '%;display:block"></span>' +
           '<span class="seg-prog" style="height:' + (100 - donePct) + '%;display:block"></span>' +
           '</div><small>' + (labels[i] || "") + '</small></div>';
       }).join("");
+      // hover tooltip + click drawer
+      var cols = document.querySelectorAll("#chart .col");
+      [].forEach.call(cols, function (colEl) {
+        var i = +colEl.getAttribute("data-day");
+        colEl.addEventListener("mouseenter", function (e) { showTip(e, i, weekly[i]); });
+        colEl.addEventListener("mousemove", moveTip);
+        colEl.addEventListener("mouseleave", hideTip);
+        colEl.addEventListener("click", function () {
+          [].forEach.call(cols, function (c) { c.classList.remove("active"); });
+          colEl.classList.add("active"); hideTip();
+          openDrawer(i, weekly[i], weeklyItems[i] || []);
+        });
+      });
     } else {
       document.getElementById("chart").innerHTML = '<div class="empty">ยังไม่มีข้อมูลสัปดาห์นี้</div>';
     }
@@ -110,7 +183,7 @@
       ? d.activity.map(function (a) {
           return '<div class="fi"><span class="ava" style="background:' + (a.color || 'var(--st-prog)') + '">' + a.initials + '</span>' +
             '<div><div class="tx"><b>' + a.who + '</b> ' + a.text + '</div>' +
-            '<div class="tm">' + a.time + '</div></div></div>';
+            '<div class="tm">' + fmtTime(a.time) + '</div></div></div>';
         }).join("")
       : '<div class="empty">ยังไม่มีกิจกรรม</div>';
   });
