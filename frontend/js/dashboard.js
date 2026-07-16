@@ -109,14 +109,20 @@
       card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); runFilter(f); } });
     });
 
-    // projects (คลิกเพื่อดูรายละเอียด) — icon badge + gradient bar
-    document.getElementById("projects").innerHTML = d.projects.map(function (p) {
+    // projects — จิ้มเปิด drawer รายละเอียด (มีปุ่มลิงก์ไปหน้าเต็มข้างใน)
+    document.getElementById("projects").innerHTML = d.projects.map(function (p, i) {
       var g = GRAD(p.progress, p.status);
-      return '<a class="prow rich" href="project.html?id=' + p.id + '" style="--pbar-grad:' + g + ';text-decoration:none;color:inherit">' +
+      return '<div class="prow rich tap dr-trigger" data-idx="' + i + '" role="button" tabindex="0" style="--pbar-grad:' + g + '">' +
         '<span class="picon" style="background:' + g + '">' + ICONS.building + '</span>' +
         '<div><div class="l"><b>' + p.name + ' ›</b><span class="tabular">' + p.progress + '%</span></div>' +
-        '<div class="bar"><i style="width:' + p.progress + '%"></i></div></div></a>';
+        '<div class="bar"><i style="width:' + p.progress + '%"></i></div></div></div>';
     }).join("");
+    [].forEach.call(document.querySelectorAll("#projects .prow"), function (row) {
+      row.addEventListener("click", function () {
+        var p = d.projects[+row.getAttribute("data-idx")];
+        Drawer.open(esc(p.name), esc(p.owner), DR.projDetail(p));
+      });
+    });
 
     // chart (กันกรณี backend ไม่ส่ง weekly / ไม่มีข้อมูล) + interactive
     var weekly = d.weekly || [], labels = d.weekLabels || [], weeklyItems = d.weeklyItems || [];
@@ -150,23 +156,38 @@
       document.getElementById("chart").innerHTML = '<div class="empty">ยังไม่มีข้อมูลสัปดาห์นี้</div>';
     }
 
-    // issues
+    // issues — จิ้มดูรายละเอียด
     document.getElementById("issues").innerHTML = (d.issues || []).length
-      ? d.issues.map(function (s) {
+      ? d.issues.map(function (s, i) {
           var sv = SEV[s.severity] || SEV.low;
-          return '<div class="issue-row"><div class="t"><b>' + s.title + '</b>' +
-            '<small>' + s.project + ' · ' + s.reporter + '</small></div>' +
+          return '<div class="issue-row tap dr-trigger" data-idx="' + i + '" role="button" tabindex="0"><div class="t"><b>' + esc(s.title) + '</b>' +
+            '<small>' + esc(s.project) + ' · ' + esc(s.reporter) + '</small></div>' +
             '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>';
         }).join("")
       : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>';
+    [].forEach.call(document.querySelectorAll("#issues .issue-row"), function (row) {
+      row.addEventListener("click", function () {
+        var s = d.issues[+row.getAttribute("data-idx")];
+        Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s));
+      });
+    });
 
-    // feed
+    // feed — จิ้มดูรายละเอียดกิจกรรม
     document.getElementById("feed").innerHTML = (d.activity || []).length
-      ? d.activity.map(function (a) {
-          return '<div class="fi"><span class="ava" style="background:' + (a.color || 'var(--st-prog)') + '">' + a.initials + '</span>' +
-            '<div><div class="tx"><b>' + a.who + '</b> ' + a.text + '</div>' +
+      ? d.activity.map(function (a, i) {
+          return '<div class="fi tap dr-trigger" data-idx="' + i + '" role="button" tabindex="0"><span class="ava" style="background:' + (a.color || 'var(--st-prog)') + '">' + a.initials + '</span>' +
+            '<div><div class="tx"><b>' + esc(a.who) + '</b> ' + esc(a.text) + '</div>' +
             '<div class="tm">' + fmtTime(a.time) + '</div></div></div>';
         }).join("")
       : '<div class="empty">ยังไม่มีกิจกรรม</div>';
+    [].forEach.call(document.querySelectorAll("#feed .fi"), function (row) {
+      row.addEventListener("click", function () {
+        var a = d.activity[+row.getAttribute("data-idx")];
+        Drawer.open("กิจกรรม", esc(a.who),
+          '<div class="dcard"><div class="drow"><span>โดย</span><b>' + esc(a.who) + '</b></div>' +
+          '<div class="drow"><span>รายการ</span><b style="text-align:right">' + esc(a.text) + '</b></div>' +
+          '<div class="drow"><span>เวลา</span><b>' + fmtTime(a.time) + '</b></div></div>');
+      });
+    });
   });
 })();

@@ -134,27 +134,42 @@ window.App = (function () {
   function renderIssues() {
     setHead("ปัญหาที่แจ้ง", MOCK.currentUser.name, false); setTab("issues");
     var mine = MOCK.issues;
-    view.innerHTML = mine.length ? mine.map(function (s) {
+    view.innerHTML = mine.length ? mine.map(function (s, i) {
       var sev = s.severity === "high" ? "s-prob" : s.severity === "medium" ? "s-late" : "s-prog";
       var svTh = s.severity === "high" ? "ด่วน" : s.severity === "medium" ? "รอแก้" : "ทั่วไป";
-      return '<div class="task b-prob"><div class="tt"><b>' + esc(s.title) + '</b>' +
+      return '<div class="task b-prob tap dr-trigger" data-idx="' + i + '"><div class="tt"><b>' + esc(s.title) + '</b>' +
         '<span class="status ' + sev + '"><span class="d"></span>' + svTh + '</span></div>' +
-        '<div class="meta"><span>📍 ' + esc(s.project) + '</span><span>🕒 ' + esc(s.createdAt) + '</span></div></div>';
+        '<div class="meta"><span>📍 ' + esc(s.project) + '</span><span>🕒 ' + fmtTime(s.createdAt) + '</span></div></div>';
     }).join("") : '<div class="empty">ยังไม่มีปัญหาที่แจ้ง</div>';
+    [].forEach.call(view.querySelectorAll(".task[data-idx]"), function (row) {
+      row.addEventListener("click", function () {
+        var s = mine[+row.getAttribute("data-idx")];
+        Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s));
+      });
+    });
   }
   function renderNotify() {
     setHead("แจ้งเตือน", "", false); setTab("notify");
     var items = [
-      { i: "🔴", t: "ปัญหาระดับสูง: น้ำรั่วชั้น 3", s: "ส่งเข้า LINE ทีมแล้ว", tm: "09:38" },
-      { i: "🟠", t: "งานเลยกำหนด: ฉาบผนังชั้น 3 โซน B", s: "เลยกำหนด 2 วัน", tm: "08:00" },
-      { i: "🔵", t: "งานใหม่: ติดตั้งฝ้าเพดานชั้น 5", s: "ครบกำหนด 25 ก.ค.", tm: "เมื่อวาน" },
-      { i: "🟢", t: "งานปูกระเบื้องห้องน้ำ รออนุมัติ", s: "PM กำลังตรวจ", tm: "เมื่อวาน" }
+      { i: "🔴", t: "ปัญหาระดับสูง: น้ำรั่วชั้น 3", s: "ส่งเข้า LINE ทีมแล้ว", tm: "09:38", d: "ระบบส่ง Flex Message แจ้ง PM และผู้บริหารทาง LINE เรียบร้อย รอการตอบกลับ" },
+      { i: "🟠", t: "งานเลยกำหนด: ฉาบผนังชั้น 3 โซน B", s: "เลยกำหนด 2 วัน", tm: "08:00", d: "กำหนดส่ง 13 ก.ค. ปัจจุบันคืบหน้า 55% — แตะดูงานในแท็บ งาน เพื่ออัพเดท" },
+      { i: "🔵", t: "งานใหม่: ติดตั้งฝ้าเพดานชั้น 5", s: "ครบกำหนด 25 ก.ค.", tm: "เมื่อวาน", d: "PM มอบหมายงานใหม่ให้คุณที่โครงการปาร์คเลน ชั้น 5" },
+      { i: "🟢", t: "งานปูกระเบื้องห้องน้ำ รออนุมัติ", s: "PM กำลังตรวจ", tm: "เมื่อวาน", d: "คุณส่งงาน 100% แล้ว รอ PM ตรวจและอนุมัติ" }
     ];
-    view.innerHTML = items.map(function (n) {
-      return '<div class="task"><div class="tt"><b>' + n.i + ' ' + esc(n.t) + '</b>' +
+    view.innerHTML = items.map(function (n, i) {
+      return '<div class="task tap dr-trigger" data-idx="' + i + '"><div class="tt"><b>' + n.i + ' ' + esc(n.t) + '</b>' +
         '<span class="muted" style="font-size:11px">' + n.tm + '</span></div>' +
         '<div class="meta"><span>' + esc(n.s) + '</span></div></div>';
     }).join("");
+    [].forEach.call(view.querySelectorAll(".task[data-idx]"), function (row) {
+      row.addEventListener("click", function () {
+        var n = items[+row.getAttribute("data-idx")];
+        Drawer.open(n.i + " แจ้งเตือน", esc(n.tm),
+          '<div class="dcard"><div class="drow"><span>เรื่อง</span><b style="text-align:right">' + esc(n.t) + '</b></div>' +
+          '<div class="drow"><span>สถานะ</span><b>' + esc(n.s) + '</b></div></div>' +
+          '<div class="dnote" style="margin-top:12px">' + esc(n.d) + '</div>');
+      });
+    });
   }
   function renderMore() {
     setHead("อื่น ๆ", MOCK.currentUser.name, false); setTab("more");

@@ -22,14 +22,26 @@
       items.length ? items.map(rowFn).join("") : '<div class="empty">ไม่มีข้อมูล</div>',
       function (db) { DR.wireList(db, items, function (it) { Drawer.push(esc(it.title || it.name), "", detailFn(it)); }); });
   }
+  // รายละเอียดผู้รับเหมา (งานในมือ + เจาะเข้าแต่ละงานได้)
+  function contractorPanel(c, usePush) {
+    var tasks = D.tasks.filter(function (t) { return String(t.contractorId) === String(c.id); });
+    var body = tasks.length ? tasks.map(DR.taskRow).join("") : '<div class="empty">ยังไม่มีงาน</div>';
+    var fn = usePush ? Drawer.push : Drawer.open;
+    fn(c.name, esc(c.skill) + " · " + tasks.length + " งาน", body,
+      function (db) { DR.wireList(db, tasks, function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); }); });
+  }
   function openContractors() {
     var cs = D.contractors;
     Drawer.open("ผู้รับเหมา", cs.length + " คน", cs.map(DR.contractorRow).join(""), function (db) {
-      DR.wireList(db, cs, function (c) {
-        var tasks = D.tasks.filter(function (t) { return String(t.contractorId) === String(c.id); });
-        Drawer.push(c.name, esc(c.skill) + " · " + tasks.length + " งาน",
-          tasks.length ? tasks.map(DR.taskRow).join("") : '<div class="empty">ยังไม่มีงาน</div>',
-          function (db2) { DR.wireList(db2, tasks, function (t) { Drawer.push(esc(t.title), "", DR.taskDetail(t)); }); });
+      DR.wireList(db, cs, function (c) { contractorPanel(c, true); });
+    });
+  }
+  // ทำให้แถวในหน้า (นอก drawer) จิ้มได้ — ข้ามคลิกที่โดนปุ่มในแถว
+  function wireRows(box, items, onPick) {
+    [].forEach.call(box.querySelectorAll("[data-idx]"), function (row) {
+      row.addEventListener("click", function (e) {
+        if (e.target.closest(".btn")) return;
+        onPick(items[+row.getAttribute("data-idx")]);
       });
     });
   }
@@ -72,51 +84,57 @@
     document.getElementById("pendingCount").textContent = D.pending.length + " รายการ";
     var box = document.getElementById("pending");
     if (!D.pending.length) { box.innerHTML = '<div class="empty">ไม่มีงานรออนุมัติ</div>'; return; }
-    box.innerHTML = D.pending.map(function (t) {
-      return '<div class="act-row"><div class="top"><div><b>' + esc(t.title) + '</b>' +
+    box.innerHTML = D.pending.map(function (t, i) {
+      return '<div class="act-row tap dr-trigger" data-idx="' + i + '"><div class="top"><div><b>' + esc(t.title) + '</b>' +
         '<div class="sub">📍 ' + esc(t.project) + ' · ' + esc(t.location) + ' · ' + esc(t.assignee) + '</div></div>' +
         '<span class="status s-done"><span class="d"></span>เสร็จ 100%</span></div>' +
         '<div class="acts"><button class="btn btn-primary" onclick="PM.approve(\'' + t.id + '\')">✓ อนุมัติ</button>' +
         '<button class="btn btn-ghost" onclick="PM.reject(\'' + t.id + '\')">ตีกลับแก้</button></div></div>';
     }).join("");
+    wireRows(box, D.pending, function (t) { Drawer.open(esc(t.title), "งานรออนุมัติ", DR.taskDetail(t)); });
   }
 
   function renderIssues() {
     document.getElementById("issueCount").textContent = D.openIssues.length + " รายการ";
     var box = document.getElementById("issueList");
     if (!D.openIssues.length) { box.innerHTML = '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>'; return; }
-    box.innerHTML = D.openIssues.map(function (s) {
+    box.innerHTML = D.openIssues.map(function (s, i) {
       var sv = SEV[s.severity] || SEV.low;
-      return '<div class="act-row"><div class="top"><div><b>' + esc(s.title) + '</b>' +
-        '<div class="sub">📍 ' + esc(s.project) + ' · แจ้งโดย ' + esc(s.reporter) + ' · ' + esc(s.createdAt) + '</div></div>' +
+      return '<div class="act-row tap dr-trigger" data-idx="' + i + '"><div class="top"><div><b>' + esc(s.title) + '</b>' +
+        '<div class="sub">📍 ' + esc(s.project) + ' · แจ้งโดย ' + esc(s.reporter) + ' · ' + fmtTime(s.createdAt) + '</div></div>' +
         '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>' +
         (s.detail ? '<div class="detail">' + esc(s.detail) + '</div>' : '') +
         '<div class="acts"><button class="btn btn-primary" onclick="PM.openResolve(\'' + s.id + '\')">ตอบ / ปิดเรื่อง</button></div></div>';
     }).join("");
+    wireRows(box, D.openIssues, function (s) { Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s)); });
   }
 
   function renderAllTasks() {
-    var rows = D.tasks.map(function (t) {
+    var rows = D.tasks.map(function (t, i) {
       var s = STATUS[t.status] || STATUS.in_progress;
       var col = PROGRESS_COLOR(t.progress, t.status);
-      return '<tr><td><b>' + esc(t.title) + '</b><div class="muted" style="font-size:11px">' + esc(t.project) + '</div></td>' +
+      return '<tr class="tap dr-trigger" data-idx="' + i + '"><td><b>' + esc(t.title) + '</b><div class="muted" style="font-size:11px">' + esc(t.project) + '</div></td>' +
         '<td>' + esc(t.assignee) + '</td>' +
         '<td style="min-width:90px"><div class="bar" style="margin-bottom:3px"><i style="width:' + t.progress + '%;background:' + col + '"></i></div>' +
         '<span class="tabular muted" style="font-size:11px">' + t.progress + '%</span></td>' +
         '<td><span class="status ' + s.cls + '"><span class="d"></span>' + s.th + '</span></td></tr>';
     }).join("");
-    document.getElementById("allTasks").innerHTML =
+    var box = document.getElementById("allTasks");
+    box.innerHTML =
       '<table class="table"><thead><tr><th>งาน</th><th>ผู้รับเหมา</th><th>คืบหน้า</th><th>สถานะ</th></tr></thead><tbody>' +
       rows + '</tbody></table>';
+    wireRows(box, D.tasks, function (t) { Drawer.open(esc(t.title), esc(t.project), DR.taskDetail(t)); });
   }
 
   function renderContractors() {
-    document.getElementById("contractorList").innerHTML = D.contractors.map(function (c) {
-      return '<div class="act-row" style="margin-bottom:8px;padding:11px 13px"><div class="top">' +
+    var box = document.getElementById("contractorList");
+    box.innerHTML = D.contractors.map(function (c, i) {
+      return '<div class="act-row tap dr-trigger" data-idx="' + i + '" style="margin-bottom:8px;padding:11px 13px"><div class="top">' +
         '<div style="display:flex;align-items:center;gap:10px"><span class="avatar" style="background:var(--accent);width:32px;height:32px">' + esc(c.initials) + '</span>' +
         '<div><b>' + esc(c.name) + '</b><div class="sub">' + esc(c.skill) + '</div></div></div>' +
-        '<span class="muted tabular" style="font-size:12px">' + c.openTasks + ' งาน</span></div></div>';
+        '<span class="muted tabular" style="font-size:12px">' + c.openTasks + ' งาน ›</span></div></div>';
     }).join("");
+    wireRows(box, D.contractors, function (c) { contractorPanel(c, false); });
   }
 
   function renderAssignForm() {

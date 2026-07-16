@@ -47,6 +47,20 @@
       '<div class="panel"><div class="ph"><b>ปัญหาในโครงการ</b></div>' + issueList(d.issues) + '</div></div>';
 
     document.getElementById("content").innerHTML = html;
+
+    // จิ้มแถวงาน / ปัญหา เพื่อดูรายละเอียดใน drawer
+    [].forEach.call(document.querySelectorAll("#content table tbody tr[data-idx]"), function (row) {
+      row.addEventListener("click", function () {
+        var t = d.tasks[+row.getAttribute("data-idx")];
+        Drawer.open(esc(t.title), esc(t.project || p.name), DR.taskDetail(t));
+      });
+    });
+    [].forEach.call(document.querySelectorAll("#content .act-row[data-idx]"), function (row) {
+      row.addEventListener("click", function () {
+        var s = d.issues[+row.getAttribute("data-idx")];
+        Drawer.open(esc(s.title), esc(s.project), DR.issueDetail(s));
+      });
+    });
   });
 
   function kpi(lab, val, color) {
@@ -55,9 +69,9 @@
   }
   function taskTable(tasks) {
     if (!tasks.length) return '<div class="empty">ยังไม่มีงาน</div>';
-    var rows = tasks.map(function (t) {
+    var rows = tasks.map(function (t, i) {
       var s = STATUS[t.status] || STATUS.in_progress, col = PROGRESS_COLOR(t.progress, t.status);
-      return '<tr><td><b>' + esc(t.title) + '</b><div class="muted" style="font-size:11px">📍 ' + esc(t.location) + '</div></td>' +
+      return '<tr class="tap dr-trigger" data-idx="' + i + '"><td><b>' + esc(t.title) + '</b><div class="muted" style="font-size:11px">📍 ' + esc(t.location) + '</div></td>' +
         '<td>' + esc(t.assignee) + '</td>' +
         '<td style="min-width:90px"><div class="bar" style="margin-bottom:3px"><i style="width:' + t.progress + '%;background:' + col + '"></i></div>' +
         '<span class="tabular muted" style="font-size:11px">' + t.progress + '%</span></td>' +
@@ -67,10 +81,10 @@
   }
   function issueList(issues) {
     if (!issues.length) return '<div class="empty">ไม่มีปัญหาในโครงการนี้ 🎉</div>';
-    return issues.map(function (s) {
+    return issues.map(function (s, i) {
       var sv = SEV[s.severity] || SEV.low;
       var closed = s.status === "closed";
-      return '<div class="act-row"><div class="top"><div><b>' + esc(s.title) + '</b>' +
+      return '<div class="act-row tap dr-trigger" data-idx="' + i + '"><div class="top"><div><b>' + esc(s.title) + '</b>' +
         '<div class="sub">แจ้งโดย ' + esc(s.reporter) + ' · ' + esc(s.createdAt) + '</div></div>' +
         (closed ? '<span class="status s-done"><span class="d"></span>ปิดแล้ว</span>'
                 : '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span>') + '</div>' +

@@ -424,3 +424,12 @@ svg.ic-svg { width: 1em; height: 1em; display: block; }
 .dcard .drow:last-child { border-bottom: 0; }
 .dcard .drow > span:first-child { color: var(--ink-3); }
 .dcard .bar { margin-bottom: 14px; }
+
+/* ---- tappable rows (จิ้มดูข้อมูลได้ทุกหน้า) ---- */
+.tap { cursor: pointer; transition: background .12s, border-color .12s, transform .1s, box-shadow .12s; }
+.issue-row.tap:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 8px; }
+.feed .fi.tap:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 8px; }
+.act-row.tap:hover { border-color: var(--accent); box-shadow: 0 6px 16px rgba(0,0,0,.07); }
+.table tbody tr.tap:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.task.tap:active { transform: scale(.99); }
+.prow.rich.tap { cursor: pointer; }
