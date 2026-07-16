@@ -42,31 +42,41 @@
         '<div class="bar"><i style="width:' + p.progress + '%;background:' + col + '"></i></div></a>';
     }).join("");
 
-    // chart
-    var maxTotal = Math.max.apply(null, d.weekly.map(function (w) { return w[0] + w[1]; }));
-    document.getElementById("chart").innerHTML = d.weekly.map(function (w, i) {
-      var total = w[0] + w[1];
-      var h = Math.round((total / maxTotal) * 100);
-      var donePct = Math.round((w[0] / total) * 100);
-      return '<div class="col"><div class="stk" style="height:' + h + '%">' +
-        '<span style="height:' + donePct + '%;background:var(--st-done);display:block"></span>' +
-        '<span style="height:' + (100 - donePct) + '%;background:var(--st-prog);display:block"></span>' +
-        '</div><small>' + d.weekLabels[i] + '</small></div>';
-    }).join("");
+    // chart (กันกรณี backend ไม่ส่ง weekly / ไม่มีข้อมูล)
+    var weekly = d.weekly || [], labels = d.weekLabels || [];
+    var hasWeek = weekly.length && weekly.some(function (w) { return (w[0] + w[1]) > 0; });
+    if (hasWeek) {
+      var maxTotal = Math.max.apply(null, weekly.map(function (w) { return w[0] + w[1]; })) || 1;
+      document.getElementById("chart").innerHTML = weekly.map(function (w, i) {
+        var total = w[0] + w[1];
+        var h = Math.round((total / maxTotal) * 100);
+        var donePct = total ? Math.round((w[0] / total) * 100) : 0;
+        return '<div class="col"><div class="stk" style="height:' + h + '%">' +
+          '<span style="height:' + donePct + '%;background:var(--st-done);display:block"></span>' +
+          '<span style="height:' + (100 - donePct) + '%;background:var(--st-prog);display:block"></span>' +
+          '</div><small>' + (labels[i] || "") + '</small></div>';
+      }).join("");
+    } else {
+      document.getElementById("chart").innerHTML = '<div class="empty">ยังไม่มีข้อมูลสัปดาห์นี้</div>';
+    }
 
     // issues
-    document.getElementById("issues").innerHTML = d.issues.map(function (s) {
-      var sv = SEV[s.severity] || SEV.low;
-      return '<div class="issue-row"><div class="t"><b>' + s.title + '</b>' +
-        '<small>' + s.project + ' · ' + s.reporter + '</small></div>' +
-        '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>';
-    }).join("");
+    document.getElementById("issues").innerHTML = (d.issues || []).length
+      ? d.issues.map(function (s) {
+          var sv = SEV[s.severity] || SEV.low;
+          return '<div class="issue-row"><div class="t"><b>' + s.title + '</b>' +
+            '<small>' + s.project + ' · ' + s.reporter + '</small></div>' +
+            '<span class="status ' + sv.cls + '"><span class="d"></span>' + sv.th + '</span></div>';
+        }).join("")
+      : '<div class="empty">ไม่มีปัญหาค้าง 🎉</div>';
 
     // feed
-    document.getElementById("feed").innerHTML = d.activity.map(function (a) {
-      return '<div class="fi"><span class="ava" style="background:' + a.color + '">' + a.initials + '</span>' +
-        '<div><div class="tx"><b>' + a.who + '</b> ' + a.text + '</div>' +
-        '<div class="tm">' + a.time + '</div></div></div>';
-    }).join("");
+    document.getElementById("feed").innerHTML = (d.activity || []).length
+      ? d.activity.map(function (a) {
+          return '<div class="fi"><span class="ava" style="background:' + (a.color || 'var(--st-prog)') + '">' + a.initials + '</span>' +
+            '<div><div class="tx"><b>' + a.who + '</b> ' + a.text + '</div>' +
+            '<div class="tm">' + a.time + '</div></div></div>';
+        }).join("")
+      : '<div class="empty">ยังไม่มีกิจกรรม</div>';
   });
 })();

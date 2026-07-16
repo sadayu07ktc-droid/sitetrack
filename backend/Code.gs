@@ -95,14 +95,27 @@ function now_() { return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-
 // ====== BUSINESS LOGIC ======
 function getDashboard_() {
   var projects = rows_('Projects'), tasks = rows_('Tasks'), issues = rows_('Issues');
+  var updates = rows_('Updates');
   var avg = projects.length ? Math.round(projects.reduce(function (a, p) { return a + Number(p.progress || 0); }, 0) / projects.length) : 0;
+  // weekly: นับ Updates ต่อวัน (จ-ส) แยกเสร็จ(100%)/กำลังทำ
+  var labels = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+  var weekly = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+  updates.forEach(function (u) {
+    var dt = new Date(u.createdAt);
+    if (isNaN(dt.getTime())) return;
+    var wd = dt.getDay();               // 0=อา..6=ส
+    if (wd === 0) return;               // ข้ามวันอาทิตย์
+    if (Number(u.progress) >= 100) weekly[wd - 1][0]++; else weekly[wd - 1][1]++;
+  });
   return {
     projects: projects,
     issues: issues.filter(function (i) { return i.status === 'open'; }),
-    activity: rows_('Updates').slice(-6).reverse().map(function (u) {
+    activity: updates.slice(-6).reverse().map(function (u) {
       return { who: u.userName, initials: (u.userName || '').slice(0, 2), color: 'var(--st-prog)',
                text: 'อัพเดท ' + u.taskTitle + ' เป็น ' + u.progress + '%', time: u.createdAt };
     }),
+    weekly: weekly,
+    weekLabels: labels,
     kpi: {
       projects: projects.length, avgProgress: avg,
       late: tasks.filter(function (t) { return t.status === 'late'; }).length,
@@ -348,6 +361,19 @@ function seedSampleData() {
     ['t6', 'p2', 'ปาร์คเลน', 'u2', 'ปูพื้นกระเบื้องล็อบบี้', 'ชั้น 1', 60, '2026-07-22', 'in_progress', 'ธนา รักงาน'],
     ['t7', 'p3', 'กรีนวิลล์', 'u4', 'เดินสายไฟบ้าน A', 'บ้าน A', 40, '2026-07-16', 'late', 'วิชัย มานะ'],
     ['t8', 'p1', 'ริเวอร์ เฟส 2', 'u3', 'ติดตั้งระบบประปาชั้น 3', 'ชั้น 3', 90, '2026-07-14', 'done', 'ณัฐ ตั้งใจ']
+  ]);
+  // Updates: id, taskId, taskTitle, userId, userName, progress, note, createdAt
+  fill('Updates', [
+    ['ux1', 't4', 'ปูกระเบื้องห้องน้ำ', 'u1', 'สมชาย ใจดี', 100, 'ปูเสร็จทั้งห้อง', '2026-07-06 15:00'],
+    ['ux2', 't6', 'ปูพื้นกระเบื้องล็อบบี้', 'u2', 'ธนา รักงาน', 45, 'ปูไป 45%', '2026-07-07 10:30'],
+    ['ux3', 't7', 'เดินสายไฟบ้าน A', 'u4', 'วิชัย มานะ', 30, 'เดินสายชั้นล่าง', '2026-07-08 14:00'],
+    ['ux4', 't8', 'ติดตั้งระบบประปาชั้น 3', 'u3', 'ณัฐ ตั้งใจ', 75, 'ต่อท่อเมนเสร็จ', '2026-07-09 11:00'],
+    ['ux5', 't1', 'ฉาบผนังชั้น 3 โซน B', 'u1', 'สมชาย ใจดี', 40, 'ฉาบโซนแรก', '2026-07-10 16:00'],
+    ['ux6', 't2', 'เทพื้นคอนกรีตชั้น 4', 'u1', 'สมชาย ใจดี', 50, 'เทครึ่งชั้น', '2026-07-11 09:00'],
+    ['ux7', 't8', 'ติดตั้งระบบประปาชั้น 3', 'u3', 'ณัฐ ตั้งใจ', 90, 'เกือบเสร็จ', '2026-07-13 13:00'],
+    ['ux8', 't6', 'ปูพื้นกระเบื้องล็อบบี้', 'u2', 'ธนา รักงาน', 60, 'ปูเพิ่มเป็น 60%', '2026-07-14 10:00'],
+    ['ux9', 't2', 'เทพื้นคอนกรีตชั้น 4', 'u1', 'สมชาย ใจดี', 70, 'เทโซนตะวันตกเสร็จ', '2026-07-15 09:20'],
+    ['ux10', 't4', 'ปูกระเบื้องห้องน้ำ', 'u1', 'สมชาย ใจดี', 100, 'ตรวจงานผ่าน', '2026-07-15 15:30']
   ]);
   // Issues: id, taskId, project, title, severity, detail, reporter, status, reply, createdAt
   fill('Issues', [
