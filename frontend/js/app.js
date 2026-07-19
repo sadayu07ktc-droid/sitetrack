@@ -122,7 +122,12 @@ window.App = (function () {
           }
           var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
           cv.getContext("2d").drawImage(img, 0, 0, w, h);
-          try { resolve(cv.toDataURL("image/jpeg", q)); } catch (err) { resolve(e.target.result); }
+          try {
+            var quality = q, out = cv.toDataURL("image/jpeg", quality);
+            // บีบซ้ำจนได้ไฟล์ ~≤500KB (base64 ~680k อักขระ) กันรูปความละเอียดสูงมาก
+            while (out.length > 680000 && quality > 0.4) { quality -= 0.1; out = cv.toDataURL("image/jpeg", quality); }
+            resolve(out);
+          } catch (err) { resolve(e.target.result); }
         };
         img.onerror = function () { resolve(e.target.result); };
         img.src = e.target.result;
