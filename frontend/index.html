@@ -6,52 +6,83 @@
   <title>SiteTrack — ระบบติดตามงานผู้รับเหมา</title>
   <link rel="stylesheet" href="css/styles.css" />
   <style>
-    .landing { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-    .card-l { background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
-      padding: clamp(26px, 5vw, 44px); max-width: 460px; width: 100%; box-shadow: var(--shadow-lg); text-align: center; }
-    .card-l .logo { width: 56px; height: 56px; border-radius: 15px; background: var(--accent); color: #fff;
-      font-weight: 900; font-size: 28px; display: grid; place-items: center; margin: 0 auto 16px; }
-    .card-l h1 { margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
-    .card-l p { margin: 0 0 26px; color: var(--ink-2); font-size: 14.5px; }
+    .landing { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; overflow: hidden; }
+    /* decorative construction-tone background */
+    .landing::before { content: ""; position: absolute; inset: 0; z-index: 0; background:
+      radial-gradient(50% 40% at 82% 8%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 60%),
+      radial-gradient(46% 40% at 12% 92%, color-mix(in srgb, var(--st-prog) 16%, transparent), transparent 60%),
+      radial-gradient(40% 34% at 92% 88%, color-mix(in srgb, var(--st-done) 12%, transparent), transparent 60%); }
+    .wrap-l { position: relative; z-index: 1; width: 100%; max-width: 500px; }
+    .card-l { background: var(--surface); border: 1px solid var(--line); border-radius: 24px;
+      padding: clamp(26px, 5vw, 42px); box-shadow: var(--shadow-lg); }
+    .head-l { text-align: center; margin-bottom: 26px; }
+    .logo-l { width: 66px; height: 66px; border-radius: 20px; background: var(--grad-accent); color: #fff;
+      font-weight: 900; font-size: 34px; display: grid; place-items: center; margin: 0 auto 16px;
+      box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 42%, transparent); }
+    .head-l h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 32px); font-weight: 800; letter-spacing: -.02em; }
+    .head-l p { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+    .feats { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; margin: 16px 0 0; }
+    .feats span { font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2);
+      border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
+    .prompt { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ink-3); margin: 0 0 12px; }
     .roles { display: flex; flex-direction: column; gap: 12px; }
-    .role-btn { display: flex; align-items: center; gap: 14px; text-align: left; text-decoration: none;
-      background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; padding: 16px 18px; color: var(--ink);
-      transition: border-color .15s, transform .1s; }
-    .role-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .role-btn .ic { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; font-size: 22px; flex: 0 0 auto; }
-    .role-btn .tx b { display: block; font-size: 15.5px; }
+    .role-btn { display: flex; align-items: center; gap: 15px; text-align: left; text-decoration: none;
+      background: linear-gradient(150deg, var(--surface), color-mix(in srgb, var(--surface) 90%, var(--rc)));
+      border: 1px solid var(--line-2); border-radius: 16px; padding: 15px 17px; color: var(--ink);
+      transition: border-color .15s, transform .12s, box-shadow .15s; }
+    .role-btn:hover { border-color: var(--rc); transform: translateY(-2px);
+      box-shadow: 0 12px 26px color-mix(in srgb, var(--rc) 22%, transparent); }
+    .role-btn:focus-visible { outline: 2px solid var(--rc); outline-offset: 2px; }
+    .role-btn .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #fff;
+      flex: 0 0 auto; background: var(--rg); box-shadow: 0 6px 16px color-mix(in srgb, var(--rc) 40%, transparent); }
+    .role-btn .ic svg { width: 25px; height: 25px; }
+    .role-btn .tx b { display: block; font-size: 16px; }
     .role-btn .tx small { color: var(--ink-3); font-size: 12.5px; }
-    .role-btn .arr { margin-left: auto; color: var(--ink-3); font-size: 20px; }
-    .badge-proto { display: inline-block; margin-top: 22px; font-size: 11.5px; font-weight: 700;
-      color: var(--accent); background: var(--accent-soft); padding: 5px 12px; border-radius: 999px; }
-    .top-r { position: fixed; top: 16px; right: 16px; }
+    .role-btn .arr { margin-left: auto; color: var(--rc); font-size: 22px; font-weight: 700; }
+    .r-con { --rc: var(--accent); --rg: var(--grad-accent); }
+    .r-pm  { --rc: var(--st-prog); --rg: var(--grad-prog); }
+    .r-exec{ --rc: var(--st-done); --rg: var(--grad-done); }
+    .foot-l { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 22px;
+      font-size: 12px; color: var(--ink-3); }
+    .foot-l .live { width: 8px; height: 8px; border-radius: 50%; background: var(--st-done);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-done) 24%, transparent); }
+    .top-r { position: fixed; top: 16px; right: 16px; z-index: 2; }
   </style>
 </head>
 <body>
   <div class="top-r"><button class="theme-toggle" id="themeBtn" onclick="UI.toggleTheme()">☾</button></div>
   <div class="landing">
-    <div class="card-l">
-      <div class="logo">S</div>
-      <h1>SiteTrack</h1>
-      <p>ระบบติดตามงานผู้รับเหมา · แจ้งปัญหาหน้างาน · แดชบอร์ดผู้บริหาร · แจ้งเตือนผ่าน LINE</p>
-      <div class="roles">
-        <a class="role-btn" href="app.html">
-          <span class="ic" style="background:var(--accent-soft);color:var(--accent)">👷</span>
-          <span class="tx"><b>ผู้รับเหมา / หน้างาน</b><small>ดูงาน · อัพเดทความคืบหน้า · แจ้งปัญหา</small></span>
-          <span class="arr">→</span>
-        </a>
-        <a class="role-btn" href="pm.html">
-          <span class="ic" style="background:var(--st-prog-bg);color:var(--st-prog)">✔</span>
-          <span class="tx"><b>ผู้จัดการโครงการ</b><small>มอบหมายงาน · อนุมัติ · ตอบปัญหา</small></span>
-          <span class="arr">→</span>
-        </a>
-        <a class="role-btn" href="dashboard.html">
-          <span class="ic" style="background:var(--st-done-bg);color:var(--st-done)">📊</span>
-          <span class="tx"><b>ผู้บริหาร</b><small>แดชบอร์ดภาพรวมทุกโครงการ</small></span>
-          <span class="arr">→</span>
-        </a>
+    <div class="wrap-l">
+      <div class="card-l">
+        <div class="head-l">
+          <div class="logo-l">S</div>
+          <h1>SiteTrack</h1>
+          <p>ระบบติดตามงานผู้รับเหมา ครบวงจร<br>อัพเดทหน้างาน · แจ้งปัญหา · แดชบอร์ดผู้บริหาร</p>
+          <div class="feats"><span>📋 ติดตามงาน</span><span>⚠️ แจ้งปัญหา</span><span>📊 แดชบอร์ด</span><span>💬 แจ้งเตือน LINE</span></div>
+        </div>
+
+        <div class="prompt">เลือกเข้าใช้งานตามบทบาท</div>
+        <div class="roles">
+          <a class="role-btn r-con" href="app.html">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M5 18v-3a7 7 0 0 1 14 0v3"/><path d="M8 8.2a5 5 0 0 1 8 0"/><path d="M10 6.6V5a2 2 0 0 1 4 0v1.6"/></svg></span>
+            <span class="tx"><b>ผู้รับเหมา / หน้างาน</b><small>ดูงาน · อัพเดทความคืบหน้า · แจ้งปัญหา</small></span>
+            <span class="arr">→</span>
+          </a>
+          <a class="role-btn r-pm" href="pm.html">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5V4"/><path d="M9 13l2 2 4-4"/></svg></span>
+            <span class="tx"><b>ผู้จัดการโครงการ</b><small>มอบหมายงาน · อนุมัติ · ตอบปัญหา</small></span>
+            <span class="arr">→</span>
+          </a>
+          <a class="role-btn r-exec" href="dashboard.html">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="4" width="3" height="14"/></svg></span>
+            <span class="tx"><b>ผู้บริหาร</b><small>แดชบอร์ดภาพรวมทุกโครงการ</small></span>
+            <span class="arr">→</span>
+          </a>
+        </div>
+
+        <div class="foot-l"><span class="live"></span> เชื่อมต่อ Google Sheets + LINE · พร้อมใช้งาน</div>
       </div>
-      <span class="badge-proto">● PROTOTYPE — ใช้ข้อมูลจำลอง (mock data)</span>
     </div>
   </div>
   <script src="js/ui.js"></script>
