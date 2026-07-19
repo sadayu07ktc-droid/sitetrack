@@ -39,9 +39,11 @@ window.App = (function () {
   // ---------- LIST ----------
   function renderTasks() {
     stack = [];
-    setHead("งานของฉัน", MOCK.currentUser.name + " · ริเวอร์ เฟส 2", false);
     setTab("tasks");
+    var av = document.getElementById("headAvatar");   // avatar ตามตัวย่อชื่อผู้ใช้จริง
+    if (av) av.textContent = MOCK.currentUser.initials || "?";
     API.getTasks().then(function (tasks) {
+      setHead("งานของฉัน", MOCK.currentUser.name + " · " + tasks.length + " งาน", false);
       var avg = tasks.length ? Math.round(tasks.reduce(function (a, t) { return a + Number(t.progress || 0); }, 0) / tasks.length) : 0;
       var done = tasks.filter(function (t) { return t.status === "done" || t.status === "approved"; }).length;
       var probs = tasks.filter(function (t) { return t.status === "problem"; }).length;
