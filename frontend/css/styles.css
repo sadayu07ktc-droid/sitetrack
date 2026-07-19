@@ -195,6 +195,26 @@ a.brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; b
    ============================================================ */
 .app-shell { max-width: 440px; margin: 0 auto; min-height: 100vh; background: var(--surface);
   display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+
+/* ---- mobile: graphical summary + task rings ---- */
+.m-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding: 16px;
+  border-radius: 16px; border: 1px solid var(--line); position: relative; overflow: hidden;
+  background: linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--surface) 86%, var(--accent))); }
+.m-summary::before { content: ""; position: absolute; inset: 0;
+  background: radial-gradient(60% 120% at 0% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%); }
+.ms-ring { position: relative; width: 72px; height: 72px; flex: 0 0 72px; z-index: 1; }
+.ms-ring svg { width: 100%; height: 100%; }
+.ms-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 19px; font-weight: 800; }
+.ms-stats { display: flex; gap: 16px; z-index: 1; }
+.ms-stats > div { display: flex; flex-direction: column; }
+.ms-stats b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.ms-stats small { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+
+.task.tk { display: flex; align-items: center; gap: 13px; }
+.task.tk .tk-body { flex: 1; min-width: 0; }
+.tk-ring { position: relative; width: 46px; height: 46px; flex: 0 0 46px; }
+.tk-ring svg { width: 100%; height: 100%; }
+.tk-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
 .app-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--line);
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   position: sticky; top: 0; background: var(--surface); z-index: 10; }

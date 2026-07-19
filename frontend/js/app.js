@@ -26,15 +26,34 @@ window.App = (function () {
     });
   }
 
+  // วงแหวนความคืบหน้าเล็ก (SVG) — r,strokeWidth ปรับตามขนาด
+  function ring(pct, color, r, sw, box) {
+    pct = Math.max(0, Math.min(100, pct));
+    var C = 2 * Math.PI * r, off = C * (1 - pct / 100), c = box / 2;
+    return '<svg viewBox="0 0 ' + box + ' ' + box + '">' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="var(--surface-2)" stroke-width="' + sw + '"/>' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '" stroke-linecap="round"' +
+      ' stroke-dasharray="' + C + '" stroke-dashoffset="' + off + '" transform="rotate(-90 ' + c + ' ' + c + ')"/></svg>';
+  }
+
   // ---------- LIST ----------
   function renderTasks() {
     stack = [];
     setHead("งานของฉัน", MOCK.currentUser.name + " · ริเวอร์ เฟส 2", false);
     setTab("tasks");
     API.getTasks().then(function (tasks) {
-      var today = tasks;
-      view.innerHTML = '<div class="p-label">วันนี้ · ' + today.length + ' งาน</div>' +
-        today.map(taskCard).join("");
+      var avg = tasks.length ? Math.round(tasks.reduce(function (a, t) { return a + Number(t.progress || 0); }, 0) / tasks.length) : 0;
+      var done = tasks.filter(function (t) { return t.status === "done" || t.status === "approved"; }).length;
+      var probs = tasks.filter(function (t) { return t.status === "problem"; }).length;
+      var summary =
+        '<div class="m-summary"><div class="ms-ring">' + ring(avg, "var(--accent)", 30, 7, 72) +
+        '<b>' + avg + '%</b></div>' +
+        '<div class="ms-stats">' +
+        '<div><b>' + tasks.length + '</b><small>งานทั้งหมด</small></div>' +
+        '<div><b style="color:var(--st-done)">' + done + '</b><small>เสร็จ</small></div>' +
+        '<div><b style="color:var(--st-prob)">' + probs + '</b><small>มีปัญหา</small></div></div></div>';
+      view.innerHTML = summary + '<div class="p-label">วันนี้ · ' + tasks.length + ' งาน</div>' +
+        tasks.map(taskCard).join("");
     });
   }
   function taskCard(t) {
@@ -43,11 +62,13 @@ window.App = (function () {
     var dueTxt = t.status === "late" ? "เลยกำหนด" :
                  t.status === "problem" ? "รอตอบกลับ" :
                  t.status === "done" ? "รออนุมัติ" : "ครบ " + fmtDue(t.due);
-    return '<button class="task ' + s.b + '" onclick="App.openTask(\'' + t.id + '\')">' +
-      '<div class="tt"><b>' + esc(t.title) + '</b>' +
-      '<span class="status ' + s.cls + '"><span class="d"></span>' + s.th + '</span></div>' +
-      '<div class="meta"><span>📍 ' + esc(t.location) + '</span><span>🗓 ' + dueTxt + '</span></div>' +
-      '<div class="pbar"><i style="width:' + t.progress + '%;background:' + col + '"></i></div></button>';
+    return '<button class="task tk ' + s.b + '" onclick="App.openTask(\'' + t.id + '\')">' +
+      '<span class="tk-ring">' + ring(t.progress, col, 18, 4, 46) + '<b>' + t.progress + '</b></span>' +
+      '<span class="tk-body">' +
+      '<span class="tt"><b>' + esc(t.title) + '</b>' +
+      '<span class="status ' + s.cls + '"><span class="d"></span>' + s.th + '</span></span>' +
+      '<span class="meta"><span>📍 ' + esc(t.location) + '</span><span>🗓 ' + dueTxt + '</span></span>' +
+      '</span></button>';
   }
   function fmtDue(iso) {
     var m = { "01":"ม.ค.","02":"ก.พ.","03":"มี.ค.","04":"เม.ย.","05":"พ.ค.","06":"มิ.ย.",
