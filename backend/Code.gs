@@ -44,6 +44,7 @@ function doPost(e) {
     switch (action) {
       case 'getDashboard':   data = getDashboard_(); break;
       case 'getTasks':       data = getTasks_(payload.userId); break;
+      case 'resolveUser':    data = resolveUser_(payload.lineUserId); break;
       case 'getTask':        data = getTask_(payload.id); break;
       case 'getTaskUpdates': data = rows_('Updates').filter(function (u) { return String(u.taskId) === String(payload.taskId); }); break;
       case 'updateProgress': data = updateProgress_(payload); break;
@@ -132,6 +133,12 @@ function getDashboard_() {
 }
 function getTasks_(userId) {
   return rows_('Tasks').filter(function (t) { return !userId || String(t.contractorId) === String(userId); });
+}
+// หาพนักงานจาก LINE userId (สำหรับ LIFF login) — คืน null ถ้ายังไม่ผูกบัญชี
+function resolveUser_(lineUserId) {
+  if (!lineUserId) return null;
+  var u = rows_('Users').filter(function (x) { return x.lineUserId && String(x.lineUserId) === String(lineUserId); })[0];
+  return u ? { id: u.id, name: u.name, role: u.role, initials: String(u.name || '').slice(0, 2) } : null;
 }
 function getTask_(id) {
   return rows_('Tasks').filter(function (t) { return String(t.id) === String(id); })[0] || null;

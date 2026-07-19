@@ -277,8 +277,36 @@ window.App = (function () {
     else { renderTasks(); }
   }
 
-  document.addEventListener("DOMContentLoaded", renderTasks);
-  if (document.readyState !== "loading") renderTasks();
+  // ---------- BOOT (LINE LIFF login ถ้าตั้งค่าไว้ ไม่งั้นโหมดสาธิต) ----------
+  function showUnbound(profile) {
+    setHead("ยังไม่ได้ผูกบัญชี", "", false);
+    tabbar.style.display = "none";
+    view.innerHTML =
+      '<div style="text-align:center;padding:34px 16px">' +
+      '<div style="font-size:44px">🔗</div>' +
+      '<h3 style="margin:14px 0 6px">บัญชี LINE นี้ยังไม่ผูกกับพนักงาน</h3>' +
+      '<p style="color:var(--ink-2);font-size:14px;line-height:1.6">แจ้งผู้จัดการโครงการเพื่อผูกบัญชีให้ หรือพิมพ์ <b>ผูก &lt;รหัสพนักงาน&gt;</b> ในแชท LINE Official Account</p>' +
+      '<div class="dnote" style="margin-top:16px;text-align:left;word-break:break-all">LINE User ID ของคุณ:<br><b>' + esc(profile.userId) + '</b></div></div>';
+  }
+  function boot() {
+    var cfg = window.SITETRACK_CONFIG || {};
+    if (!cfg.LIFF_ID || !window.liff) { renderTasks(); return; }        // โหมดสาธิต
+    liff.init({ liffId: cfg.LIFF_ID }).then(function () {
+      if (!liff.isLoggedIn()) { liff.login(); return; }                 // เด้งไปล็อกอิน LINE
+      return liff.getProfile().then(function (profile) {
+        return API.resolveUser(profile.userId).then(function (user) {
+          if (user && user.id) { MOCK.currentUser = user; renderTasks(); }
+          else { showUnbound(profile); }
+        });
+      });
+    }).catch(function (e) {
+      console.warn("LIFF init failed → demo mode:", e && e.message);
+      renderTasks();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", boot);
+  if (document.readyState !== "loading") boot();
 
   return { go: go, back: back, openTask: openTask, saveProgress: saveProgress,
            openReport: openReport, pickSev: pickSev, submitIssue: submitIssue };

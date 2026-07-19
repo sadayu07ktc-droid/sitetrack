@@ -50,6 +50,11 @@ window.API = (function () {
       return callGAS("getTasks", { userId: MOCK.currentUser.id });
     },
 
+    resolveUser: function (lineUserId) {
+      if (USE_MOCK) return delay(MOCK.currentUser);
+      return callGAS("resolveUser", { lineUserId: lineUserId });
+    },
+
     getTask: function (id) {
       if (USE_MOCK) return delay(MOCK.tasks.find(t => t.id === id) || null);
       return callGAS("getTask", { id: id });
