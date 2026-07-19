@@ -60,7 +60,7 @@ window.API = (function () {
       return callGAS("getTaskUpdates", { taskId: taskId });
     },
 
-    updateProgress: function (taskId, progress, note) {
+    updateProgress: function (taskId, progress, note, photos) {
       if (USE_MOCK) {
         const t = MOCK.tasks.find(x => x.id === taskId);
         if (t) {
@@ -70,8 +70,8 @@ window.API = (function () {
         }
         return delay({ ok: true, task: t });
       }
-      return callGAS("updateProgress", { taskId, progress, note, userId: MOCK.currentUser.id });
-      // NOTE: backend จะยิงแจ้งเตือน LINE ให้ PM เมื่อ progress ครบ 100%
+      return callGAS("updateProgress", { taskId, progress, note, photos: photos || [], userId: MOCK.currentUser.id });
+      // NOTE: backend เซฟรูปลง Drive + ยิงแจ้งเตือน LINE ให้ PM เมื่อ progress ครบ 100%
     },
 
     reportIssue: function (data) {

@@ -77,6 +77,63 @@ window.App = (function () {
   }
 
   // ---------- DETAIL / UPDATE ----------
+  // ---------- PHOTO PICKER (ถ่าย/เลือกรูป → ย่อขนาด → เก็บ base64) ----------
+  function photoField(label) {
+    return '<div class="field"><label class="fl">' + label + '</label>' +
+      '<div class="photos" id="photoBox">' +
+      '<label class="ph2 addph" for="photoInput">＋' +
+      '<input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden></label>' +
+      '</div><div class="muted" style="font-size:11px;margin-top:6px">📷 ถ่ายรูปหรือเลือกจากเครื่อง · ระบบย่อขนาดให้อัตโนมัติ</div></div>';
+  }
+  function initPhotos() {
+    draft.photos = [];
+    var input = document.getElementById("photoInput");
+    if (!input) return;
+    input.addEventListener("change", function () {
+      Array.prototype.slice.call(input.files || []).forEach(function (f) {
+        if (!/^image\//.test(f.type)) return;
+        resizeImage(f, 1280, 0.8).then(function (url) { draft.photos.push(url); addThumb(url); });
+      });
+      input.value = "";
+    });
+  }
+  function addThumb(url) {
+    var box = document.getElementById("photoBox");
+    if (!box) return;
+    var el = document.createElement("div");
+    el.className = "ph2 filled thumb";
+    el.style.backgroundImage = "url(" + url + ")";
+    el.innerHTML = '<button class="thx" aria-label="ลบรูป">✕</button>';
+    el.querySelector(".thx").addEventListener("click", function () {
+      var i = draft.photos.indexOf(url); if (i > -1) draft.photos.splice(i, 1); el.remove();
+    });
+    box.insertBefore(el, box.querySelector(".addph"));
+  }
+  function resizeImage(file, maxDim, q) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          var w = img.width, h = img.height;
+          if (Math.max(w, h) > maxDim) {
+            if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          cv.getContext("2d").drawImage(img, 0, 0, w, h);
+          try { resolve(cv.toDataURL("image/jpeg", q)); } catch (err) { resolve(e.target.result); }
+        };
+        img.onerror = function () { resolve(e.target.result); };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  function busy(btn, text) {
+    if (btn) { btn.disabled = true; btn.textContent = text; btn.style.opacity = ".7"; }
+  }
+
   function openTask(id) {
     API.getTask(id).then(function (t) {
       if (!t) return;
@@ -89,20 +146,20 @@ window.App = (function () {
           '<div class="big-pct" id="pctLabel">' + t.progress + '%</div>' +
           '<input type="range" min="0" max="100" step="5" value="' + t.progress +
             '" oninput="document.getElementById(\'pctLabel\').textContent=this.value+\'%\'" id="pct" /></div>' +
-        '<div class="field"><label class="fl">รูปหน้างาน</label>' +
-          '<div class="photos"><div class="ph2 filled">🏗</div><div class="ph2 filled">🧱</div>' +
-          '<div class="ph2" onclick="UI.toast(\'อัพโหลดรูป (ตัวอย่าง)\')">＋</div></div></div>' +
+        photoField("รูปหน้างาน") +
         '<div class="field"><label class="fl">บันทึกเพิ่มเติม</label>' +
           '<textarea id="note" placeholder="เช่น เทพื้นโซนตะวันตกเสร็จ รอปูนเซ็ตตัว…"></textarea></div>' +
-        '<button class="btn btn-primary btn-block" onclick="App.saveProgress()">บันทึกอัพเดท</button>' +
+        '<button class="btn btn-primary btn-block" id="saveBtn" onclick="App.saveProgress()">บันทึกอัพเดท</button>' +
         '<div style="height:10px"></div>' +
         '<button class="btn btn-danger btn-block" onclick="App.openReport()">⚠ แจ้งปัญหางานนี้</button>';
+      initPhotos();
     });
   }
   function saveProgress() {
     var pct = +document.getElementById("pct").value;
     var note = document.getElementById("note").value;
-    API.updateProgress(draft.taskId, pct, note).then(function () {
+    busy(document.getElementById("saveBtn"), (draft.photos && draft.photos.length) ? "⏳ กำลังอัพโหลดรูป…" : "กำลังบันทึก…");
+    API.updateProgress(draft.taskId, pct, note, draft.photos).then(function () {
       UI.toast(pct >= 100 ? "บันทึกแล้ว · ส่งให้ PM อนุมัติ" : "บันทึกอัพเดทแล้ว", "ok");
       renderTasks();
     });
@@ -126,11 +183,10 @@ window.App = (function () {
         '<option>ความปลอดภัย</option><option>สภาพอากาศ</option><option>แรงงาน</option><option>อื่น ๆ</option></select></div>' +
       '<div class="field"><label class="fl">รายละเอียด</label>' +
         '<textarea id="detail" placeholder="อธิบายปัญหาที่พบหน้างาน…"></textarea></div>' +
-      '<div class="field"><label class="fl">แนบรูป</label>' +
-        '<div class="photos"><div class="ph2 filled">📷</div>' +
-        '<div class="ph2" onclick="UI.toast(\'อัพโหลดรูป (ตัวอย่าง)\')">＋</div></div></div>' +
-      '<button class="btn btn-danger btn-block" onclick="App.submitIssue()">ส่งแจ้งปัญหา</button>' +
+      photoField("แนบรูป") +
+      '<button class="btn btn-danger btn-block" id="issueBtn" onclick="App.submitIssue()">ส่งแจ้งปัญหา</button>' +
       '<div class="empty" style="padding:12px 8px;font-size:12px">จะแจ้งเตือน PM และผู้บริหารทาง LINE ทันที</div>';
+    initPhotos();
   }
   function pickSev(node) {
     draft.severity = node.getAttribute("data-v");
@@ -142,9 +198,11 @@ window.App = (function () {
   function submitIssue() {
     var cat = document.getElementById("cat").value;
     var detail = document.getElementById("detail").value;
+    busy(document.getElementById("issueBtn"), (draft.photos && draft.photos.length) ? "⏳ กำลังอัพโหลดรูป…" : "กำลังส่ง…");
     API.reportIssue({
       taskId: draft.taskId, project: draft.project,
-      title: (draft.title ? draft.title + " — " : "") + cat, severity: draft.severity, detail: detail
+      title: (draft.title ? draft.title + " — " : "") + cat, severity: draft.severity, detail: detail,
+      photos: draft.photos
     }).then(function () {
       UI.toast("ส่งแจ้งปัญหาแล้ว · แจ้งเตือน LINE ให้ทีมแล้ว", "warn");
       renderTasks();

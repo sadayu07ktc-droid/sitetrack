@@ -24,6 +24,15 @@ window.fmtDate = function (v) {
   } catch (e) { return window.esc(v); }
 };
 
+window.photosHtml = function (str) {
+  if (!str) return "";
+  var urls = String(str).split(",").filter(Boolean);
+  if (!urls.length) return "";
+  return '<div class="dphotos">' + urls.map(function (u) {
+    return '<a href="' + window.esc(u) + '" target="_blank" rel="noopener"><img src="' + window.esc(u) + '" loading="lazy" alt="รูปหน้างาน"></a>';
+  }).join("") + '</div>';
+};
+
 window.Drawer = (function () {
   var bg, el, stack = [];
 
@@ -105,6 +114,7 @@ window.DR = (function () {
       '<div class="drow"><span>ผู้แจ้ง</span><b>' + esc(s.reporter) + '</b></div>' +
       '<div class="drow"><span>เวลา</span><b>' + fmtTime(s.createdAt) + '</b></div>' +
       (s.detail ? '<div class="dnote" style="margin-top:10px">' + esc(s.detail) + '</div>' : "") +
+      photosHtml(s.photos) +
       (s.reply ? '<div class="dnote" style="margin-top:8px;border-left:3px solid var(--st-prog)">↩ ' + esc(s.reply) + '</div>' : "") +
       '</div>';
   }
@@ -159,8 +169,9 @@ window.DR = (function () {
               return '<div class="di"><div class="dtop"><b>อัพเดทเป็น <span style="color:' + col + '">' + u.progress + '%</span></b>' +
                 '<span class="muted" style="font-size:11.5px">' + fmtTime(u.createdAt) + '</span></div>' +
                 '<div class="dmeta">👷 ' + esc(u.userName) + '</div>' +
-                '<div class="bar" style="margin-bottom:' + (u.note ? '8px' : '0') + '"><i style="width:' + u.progress + '%;background:' + col + '"></i></div>' +
-                (u.note ? '<div class="dnote">' + esc(u.note) + '</div>' : '') + '</div>';
+                '<div class="bar" style="margin-bottom:' + (u.note || u.photos ? '8px' : '0') + '"><i style="width:' + u.progress + '%;background:' + col + '"></i></div>' +
+                (u.note ? '<div class="dnote">' + esc(u.note) + '</div>' : '') +
+                photosHtml(u.photos) + '</div>';
             }).join("");
         }).catch(function () {
           var box = db.querySelector(".dload");

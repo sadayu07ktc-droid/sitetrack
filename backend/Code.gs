@@ -144,7 +144,7 @@ function updateProgress_(p) {
   appendRow_('Updates', {
     id: uid_('u'), taskId: p.taskId, taskTitle: task ? task.title : '',
     userId: p.userId, userName: userName_(p.userId), progress: p.progress,
-    note: p.note || '', createdAt: now_()
+    note: p.note || '', photos: savePhotos_(p.photos, 'update'), createdAt: now_()
   });
   // งานเสร็จ -> แจ้ง PM ให้อนุมัติ
   if (p.progress >= 100) {
@@ -157,7 +157,7 @@ function reportIssue_(p) {
   var issue = {
     id: uid_('i'), taskId: p.taskId || '', project: p.project || '', title: p.title,
     severity: p.severity, detail: p.detail || '', reporter: userName_(p.userId),
-    status: 'open', createdAt: now_()
+    status: 'open', reply: '', photos: savePhotos_(p.photos, 'issue'), createdAt: now_()
   };
   appendRow_('Issues', issue);
   if (p.taskId) updateCell_('Tasks', 'id', p.taskId, 'status', 'problem');
@@ -317,6 +317,47 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ====== รูปภาพ -> Google Drive ======
+function photoFolder_() {
+  var p = PropertiesService.getScriptProperties();
+  var id = p.getProperty('PHOTO_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  var folder = DriveApp.createFolder('SiteTrack Photos');
+  p.setProperty('PHOTO_FOLDER_ID', folder.getId());
+  return folder;
+}
+// รับ array ของ data URL (base64) -> เซฟลง Drive -> คืน URL คั่นด้วย comma
+function savePhotos_(photos, prefix) {
+  if (!photos || !photos.length) return '';
+  var folder = photoFolder_();
+  var urls = [];
+  for (var i = 0; i < photos.length; i++) {
+    var m = String(photos[i]).match(/^data:([^;]+);base64,(.*)$/);
+    if (!m) continue;
+    var name = (prefix || 'photo') + '_' + now_().replace(/[^0-9]/g, '') + '_' + i;
+    var blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], name);
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    urls.push('https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w1200');
+  }
+  return urls.join(',');
+}
+function ensureColumn_(sheetName, col) {
+  var sh = SS_().getSheetByName(sheetName);
+  if (!sh) return;
+  var head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
+  if (head.indexOf(col) === -1) sh.getRange(1, head.length + 1).setValue(col);
+}
+/**
+ * รันครั้งเดียวเพื่อเปิดใช้แนบรูป: อนุญาตสิทธิ์ Drive + เพิ่มคอลัมน์ photos + สร้างโฟลเดอร์
+ * (Apps Script editor > เลือก setupPhotos > Run)
+ */
+function setupPhotos() {
+  ensureColumn_('Updates', 'photos');
+  ensureColumn_('Issues', 'photos');
+  return photoFolder_().getId();
+}
+
 /**
  * รันครั้งเดียวเพื่อสร้างแท็บ + หัวคอลัมน์ให้ครบตามสคีมา
  * (Apps Script editor > เลือกฟังก์ชัน setupSheets > Run)
@@ -326,8 +367,8 @@ function setupSheets() {
   var schema = {
     Projects: ['id', 'name', 'owner', 'budget', 'start', 'due', 'progress', 'status'],
     Tasks: ['id', 'projectId', 'project', 'contractorId', 'title', 'location', 'progress', 'due', 'status', 'assignee'],
-    Updates: ['id', 'taskId', 'taskTitle', 'userId', 'userName', 'progress', 'note', 'createdAt'],
-    Issues: ['id', 'taskId', 'project', 'title', 'severity', 'detail', 'reporter', 'status', 'reply', 'createdAt'],
+    Updates: ['id', 'taskId', 'taskTitle', 'userId', 'userName', 'progress', 'note', 'photos', 'createdAt'],
+    Issues: ['id', 'taskId', 'project', 'title', 'severity', 'detail', 'reporter', 'status', 'reply', 'photos', 'createdAt'],
     Users: ['id', 'code', 'name', 'role', 'skill', 'lineUserId', 'phone'],
     Notifications: ['id', 'userId', 'type', 'channel', 'sentAt']
   };
