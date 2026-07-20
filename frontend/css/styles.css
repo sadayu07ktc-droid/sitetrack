@@ -456,6 +456,20 @@ svg.ic-svg { width: 1em; height: 1em; display: block; }
 .dcard .drow > span:first-child { color: var(--ink-3); }
 .dcard .bar { margin-bottom: 14px; }
 
+/* ---- ขั้นตอนโครงการ 1-7 ---- */
+.stagechip { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 700;
+  background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 9px; }
+.stagebar { display: flex; gap: 4px; margin: 12px 0 4px; overflow-x: auto; padding-bottom: 4px; }
+.stagebar .stg { flex: 1 0 auto; min-width: 52px; text-align: center; position: relative; }
+.stagebar .stg i { display: grid; place-items: center; width: 26px; height: 26px; margin: 0 auto 4px;
+  border-radius: 50%; font-style: normal; font-size: 11.5px; font-weight: 800;
+  background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+.stagebar .stg small { display: block; font-size: 10px; color: var(--ink-3); line-height: 1.25; }
+.stagebar .stg.done i { background: var(--st-done); color: #fff; border-color: transparent; }
+.stagebar .stg.cur i { background: var(--grad-accent); color: #fff; border-color: transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.stagebar .stg.cur small { color: var(--accent); font-weight: 700; }
+
 /* ---- tappable rows (จิ้มดูข้อมูลได้ทุกหน้า) ---- */
 .tap { cursor: pointer; transition: background .12s, border-color .12s, transform .1s, box-shadow .12s; }
 .issue-row.tap:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 8px; }

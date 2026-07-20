@@ -13,6 +13,7 @@
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',
     people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6l7-3 7 3v15"/><path d="M2 21h20"/><path d="M9 9h.01M14 9h.01M9 13h.01M14 13h.01M9 17h.01M14 17h.01"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
   };
 
@@ -54,6 +55,8 @@
     }
     else if (f === "tasks") listPanel("งานทั้งหมด", D.tasks, DR.taskRow, function (t) { DR.openTask(t, true); });
     else if (f === "contractors") openContractors();
+    else if (f === "projects") listPanel("โครงการทั้งหมด", D.projects, DR.projRow,
+      function (p) { DR.openProject(p, true, true, load); });   // PM แก้ขั้นตอนได้
   }
 
   function load() {
@@ -70,7 +73,8 @@
       { lab: "งานรออนุมัติ", val: D.pending.length, cls: "k-late", ic: ICONS.check, f: "pending" },
       { lab: "ปัญหาที่ต้องตอบ", val: D.openIssues.length, cls: "k-prob", ic: ICONS.alert, f: "issues" },
       { lab: "ผู้รับเหมา", val: D.contractors.length, cls: "k-prog", ic: ICONS.people, f: "contractors" },
-      { lab: "งานทั้งหมด", val: D.tasks.length, cls: "k-accent", ic: ICONS.list, f: "tasks" }
+      { lab: "งานทั้งหมด", val: D.tasks.length, cls: "k-accent", ic: ICONS.list, f: "tasks" },
+      { lab: "โครงการ", val: D.projects.length, cls: "k-done", ic: ICONS.building, f: "projects" }
     ];
     document.getElementById("kpis").innerHTML = kp.map(function (x) {
       return '<div class="kpi rich dr-trigger ' + x.cls + '" data-filter="' + x.f + '" role="button" tabindex="0">' +
@@ -158,23 +162,44 @@
 
   /* ---------- สร้างโครงการใหม่ ---------- */
   function openNewProject() {
+    var typeOpts = WORK_TYPES.map(function (t, i) { return '<option value="' + i + '">' + esc(t.name) + '</option>'; }).join("");
+    var stageOpts = STAGES.map(function (s) { return '<option value="' + s.n + '">' + s.n + '. ' + esc(s.name) + '</option>'; }).join("");
     document.getElementById("modalRoot").innerHTML =
       '<div class="modal-bg" onclick="if(event.target===this)PM.closeModal()"><div class="modal">' +
       '<h3>สร้างโครงการใหม่</h3><div class="msub">บันทึกลงระบบแล้วมอบหมายงานได้ทันที</div>' +
       '<div class="field"><label class="fl">ชื่อโครงการ *</label><input id="npName" placeholder="เช่น อาคารจอดรถ สาขา 2" /></div>' +
-      '<div class="field"><label class="fl">เจ้าของโครงการ</label><input id="npOwner" placeholder="เช่น บจก. เมืองทอง" /></div>' +
+      '<div class="field"><label class="fl">ประเภทงาน</label><select id="npType">' + typeOpts + '</select></div>' +
+      '<div class="field" id="npSubWrap"><label class="fl">ประเภทงานย่อย</label><select id="npSub"></select></div>' +
+      '<div class="field"><label class="fl">ชื่อเจ้าของโครงการ</label><input id="npOwner" placeholder="เช่น บจก. เมืองทอง" /></div>' +
+      '<div class="field"><label class="fl">ขั้นตอนเริ่มต้น</label><select id="npStage">' + stageOpts + '</select></div>' +
       '<div class="field"><label class="fl">งบประมาณ (บาท)</label><input id="npBudget" type="number" placeholder="เช่น 5000000" /></div>' +
       '<div class="field"><label class="fl">กำหนดส่ง</label><input id="npDue" type="date" /></div>' +
       '<div class="mfoot"><button class="btn btn-primary btn-block" onclick="PM.submitNewProject()">สร้างโครงการ</button>' +
       '<button class="btn btn-ghost btn-block" onclick="PM.closeModal()">ยกเลิก</button></div></div></div>';
+    var typeSel = document.getElementById("npType");
+    typeSel.addEventListener("change", syncSubType);
+    syncSubType();
     document.getElementById("npName").focus();
+  }
+  // ประเภทงานย่อยเปลี่ยนตามประเภทหลัก (ซ่อนถ้าไม่มีย่อย เช่น งานซ่อม)
+  function syncSubType() {
+    var t = WORK_TYPES[+document.getElementById("npType").value] || WORK_TYPES[0];
+    var wrap = document.getElementById("npSubWrap"), sel = document.getElementById("npSub");
+    if (!t.subs.length) { wrap.style.display = "none"; sel.innerHTML = ""; return; }
+    wrap.style.display = "";
+    sel.innerHTML = t.subs.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join("");
   }
   function submitNewProject() {
     var name = document.getElementById("npName").value.trim();
     if (!name) { UI.toast("กรุณากรอกชื่อโครงการ", "warn"); return; }
+    var t = WORK_TYPES[+document.getElementById("npType").value] || WORK_TYPES[0];
+    var subSel = document.getElementById("npSub");
     API.createProject({
       name: name,
+      workType: t.name,
+      workSubType: t.subs.length && subSel.value ? subSel.value : "",
       owner: document.getElementById("npOwner").value.trim(),
+      stage: document.getElementById("npStage").value,
       budget: document.getElementById("npBudget").value,
       due: document.getElementById("npDue").value
     }).then(function () {

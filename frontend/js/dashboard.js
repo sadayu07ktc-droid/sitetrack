@@ -93,7 +93,7 @@
         items.length ? items.map(rowFn).join("") : '<div class="empty">ไม่มีข้อมูล 🎉</div>',
         function (db) { DR.wireList(db, items, onPick); });
     }
-    function pickProject(p) { Drawer.push(esc(p.name), esc(p.owner), DR.projDetail(p)); }
+    function pickProject(p) { DR.openProject(p, true, false); }   // ผู้บริหาร = ดูอย่างเดียว
     function runFilter(f) {
       if (f === "projects") openList("ทุกโครงการ", d.projects.length + " โครงการ", d.projects, DR.projRow, pickProject);
       else if (f === "progress") openList("เรียงตามความคืบหน้า", "เฉลี่ย " + k.avgProgress + "%",
@@ -119,8 +119,7 @@
     }).join("");
     [].forEach.call(document.querySelectorAll("#projects .prow"), function (row) {
       row.addEventListener("click", function () {
-        var p = d.projects[+row.getAttribute("data-idx")];
-        Drawer.open(esc(p.name), esc(p.owner), DR.projDetail(p));
+        DR.openProject(d.projects[+row.getAttribute("data-idx")], false, false);
       });
     });
 

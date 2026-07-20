@@ -53,6 +53,7 @@ function doPost(e) {
       case 'getContractors': data = getContractors_(); break;
       case 'assignTask':     data = assignTask_(payload); break;
       case 'createProject':  data = createProject_(payload); break;
+      case 'setProjectStage': data = setProjectStage_(payload); break;
       case 'approveTask':    data = setTaskStatus_(payload.taskId, 'approved'); break;
       case 'rejectTask':     data = rejectTask_(payload); break;
       case 'resolveIssue':   data = resolveIssue_(payload); break;
@@ -203,10 +204,19 @@ function assignTask_(p) {
 }
 function createProject_(p) {
   var proj = {
-    id: uid_('p'), name: p.name, owner: p.owner || '', budget: Number(p.budget) || 0,
-    start: p.start || now_().slice(0, 10), due: p.due || '', progress: 0, status: 'on_track'
+    id: uid_('p'), name: p.name, owner: p.owner || '',
+    workType: p.workType || '', workSubType: p.workSubType || '',
+    budget: Number(p.budget) || 0, start: p.start || now_().slice(0, 10), due: p.due || '',
+    progress: 0, status: 'on_track', stage: Number(p.stage) || 1, hold: ''
   };
   appendRow_('Projects', proj);
+  return { ok: true, project: proj };
+}
+// เปลี่ยนขั้นตอนโครงการ (1-7) + พักงาน (hold)
+function setProjectStage_(p) {
+  updateCell_('Projects', 'id', p.projectId, 'stage', Number(p.stage) || 1);
+  updateCell_('Projects', 'id', p.projectId, 'hold', p.hold ? 'TRUE' : '');
+  var proj = rows_('Projects').filter(function (x) { return String(x.id) === String(p.projectId); })[0];
   return { ok: true, project: proj };
 }
 function setTaskStatus_(taskId, status) {
@@ -369,20 +379,50 @@ function setupPhotos() {
  * รันครั้งเดียวเพื่อสร้างแท็บ + หัวคอลัมน์ให้ครบตามสคีมา
  * (Apps Script editor > เลือกฟังก์ชัน setupSheets > Run)
  */
-function setupSheets() {
-  var ss = SS_();
-  var schema = {
-    Projects: ['id', 'name', 'owner', 'budget', 'start', 'due', 'progress', 'status'],
+function SCHEMA_() {
+  return {
+    Projects: ['id', 'name', 'owner', 'workType', 'workSubType', 'budget', 'start', 'due', 'progress', 'status', 'stage', 'hold'],
     Tasks: ['id', 'projectId', 'project', 'contractorId', 'title', 'location', 'progress', 'due', 'status', 'assignee'],
     Updates: ['id', 'taskId', 'taskTitle', 'userId', 'userName', 'progress', 'note', 'photos', 'createdAt'],
     Issues: ['id', 'taskId', 'project', 'title', 'severity', 'detail', 'reporter', 'status', 'reply', 'photos', 'createdAt'],
     Users: ['id', 'code', 'name', 'role', 'skill', 'lineUserId', 'phone'],
     Notifications: ['id', 'userId', 'type', 'channel', 'sentAt']
   };
+}
+function setupSheets() {
+  var ss = SS_(), schema = SCHEMA_();
   Object.keys(schema).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     if (sh.getLastRow() === 0) sh.appendRow(schema[name]);
   });
+}
+/**
+ * อัปเกรดสคีมา: เพิ่มคอลัมน์ที่ขาดให้ชีตเดิม (ข้อมูลเดิมไม่หาย)
+ * (Apps Script editor > เลือก setupUpgrade > Run) — รันหลังเพิ่มฟิลด์ใหม่
+ */
+function setupUpgrade() {
+  var schema = SCHEMA_(), added = [];
+  Object.keys(schema).forEach(function (name) {
+    schema[name].forEach(function (col) {
+      var sh = SS_().getSheetByName(name);
+      if (!sh) return;
+      var head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
+      if (head.indexOf(col) === -1) { ensureColumn_(name, col); added.push(name + '.' + col); }
+    });
+  });
+  // โครงการเดิมที่ยังไม่มีขั้นตอน -> ตั้งเป็นขั้นตอน 6 (ดำเนินงาน)
+  var sh = SS_().getSheetByName('Projects');
+  if (sh && sh.getLastRow() > 1) {
+    var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    var col = head.indexOf('stage') + 1;
+    if (col > 0) {
+      var n = sh.getLastRow() - 1;
+      var vals = sh.getRange(2, col, n, 1).getValues();
+      for (var i = 0; i < n; i++) if (vals[i][0] === '' || vals[i][0] == null) vals[i][0] = 6;
+      sh.getRange(2, col, n, 1).setValues(vals);
+    }
+  }
+  return added.length ? 'เพิ่มคอลัมน์: ' + added.join(', ') : 'ครบอยู่แล้ว';
 }
 
 /**

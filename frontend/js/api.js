@@ -122,6 +122,15 @@ window.API = (function () {
       return callGAS("createProject", data);
     },
 
+    setProjectStage: function (projectId, stage, hold) {
+      if (USE_MOCK) {
+        var p = MOCK.projects.find(x => x.id === projectId);
+        if (p) { p.stage = stage; p.hold = hold ? "TRUE" : ""; }
+        return delay({ ok: true, project: p });
+      }
+      return callGAS("setProjectStage", { projectId: projectId, stage: stage, hold: !!hold });
+    },
+
     assignTask: function (data) {
       if (USE_MOCK) {
         var proj = MOCK.projects.find(p => p.id === data.projectId);

@@ -77,6 +77,28 @@ window.GRAD = function (p, status) {
   if (p >= 100) return "var(--grad-done)";
   return "var(--grad-prog)";
 };
+/* ---- ประเภทงาน (dropdown 2 ชั้น) ---- */
+window.WORK_TYPES = [
+  { name: "งานสร้างใหม่", subs: ["โครงสร้าง", "เครื่องจักร", "งานระบบ"] },
+  { name: "งานซ่อม",     subs: [] },
+  { name: "งานช่วย",     subs: ["เอกสารระบบ", "สาธารณูปโภค"] }
+];
+
+/* ---- ขั้นตอนโครงการ 1-7 ---- */
+window.STAGES = [
+  { n: 1, short: "รับงาน",        name: "รับงาน / เขียนแบบ" },
+  { n: 2, short: "สรุปแบบ",       name: "สรุปแบบ / สั่งทำ" },
+  { n: 3, short: "BOQ",           name: "ประเมินงาน & งบประมาณ (BOQ)" },
+  { n: 4, short: "สั่งซื้อของ",   name: "สั่งซื้อของ (รอของเข้า)" },
+  { n: 5, short: "หาผู้รับเหมา",  name: "จัดหาผู้รับเหมา (รออนุมัติ)" },
+  { n: 6, short: "ดำเนินงาน",     name: "ดำเนินงาน (In process)" },
+  { n: 7, short: "ปิดโครงการ",    name: "ส่งมอบงาน / ปิดโครงการ" }
+];
+window.stageOf = function (p) {
+  var n = Number(p && p.stage) || 1;
+  return window.STAGES[Math.min(Math.max(n, 1), 7) - 1];
+};
+
 window.SEV = {
   high:   { cls: "s-prob", th: "ด่วน" },
   medium: { cls: "s-late", th: "รอแก้" },

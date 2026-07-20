@@ -121,20 +121,69 @@ window.DR = (function () {
 
   function projRow(p, i) {
     var st = STATUS[p.status] || STATUS.on_track, g = GRAD(p.progress, p.status);
+    var s = stageOf(p), held = String(p.hold).toUpperCase() === "TRUE";
     return '<div class="di clickable" data-idx="' + i + '"><div class="dtop"><b>' + esc(p.name) + '</b>' +
       '<span class="pct">' + p.progress + '%</span></div>' +
-      '<div class="dmeta"><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span> · ' + esc(p.owner) + '</div>' +
+      '<div class="dmeta"><span class="stagechip">' + s.n + '. ' + esc(s.short) + '</span>' +
+      (held ? ' <span class="status s-prob"><span class="d"></span>HOLD</span>' : '') +
+      ' <span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span></div>' +
+      '<div class="dmeta">' + esc(p.owner) + (p.workType ? ' · ' + esc(p.workType) : '') + '</div>' +
       bar(p.progress, g) + '<span class="chev">›</span></div>';
   }
 
+  // แถบขั้นตอน 1-7
+  function stageBar(p) {
+    var cur = Number(p.stage) || 1;
+    return '<div class="stagebar">' + STAGES.map(function (s) {
+      var cls = s.n < cur ? "done" : (s.n === cur ? "cur" : "");
+      return '<div class="stg ' + cls + '"><i>' + (s.n < cur ? "✓" : s.n) + '</i><small>' + esc(s.short) + '</small></div>';
+    }).join("") + '</div>';
+  }
   function projDetail(p) {
     var st = STATUS[p.status] || STATUS.on_track, g = GRAD(p.progress, p.status);
+    var s = stageOf(p), held = String(p.hold).toUpperCase() === "TRUE";
+    var wt = esc(p.workType || "-") + (p.workSubType ? " · " + esc(p.workSubType) : "");
     return '<div class="dcard"><div class="dbig" style="color:' + PROGRESS_COLOR(p.progress, p.status) + '">' + p.progress + '%</div>' +
       bar(p.progress, g) +
+      '<div class="drow"><span>ขั้นตอน</span><b>' + s.n + '. ' + esc(s.name) +
+        (held ? ' <span class="status s-prob"><span class="d"></span>HOLD</span>' : '') + '</b></div>' +
+      stageBar(p) +
+      '<div class="drow"><span>ประเภทงาน</span><b>' + wt + '</b></div>' +
       '<div class="drow"><span>สถานะ</span><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span></div>' +
       '<div class="drow"><span>เจ้าของโครงการ</span><b>' + esc(p.owner) + '</b></div>' +
       '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(p.due) + '</b></div>' +
       '<a class="btn btn-primary btn-block" style="margin-top:14px;text-decoration:none" href="project.html?id=' + esc(p.id) + '">เปิดหน้าโครงการเต็ม →</a></div>';
+  }
+  // ฟอร์มเปลี่ยนขั้นตอน (ใช้ในหน้า PM)
+  function stageForm(p) {
+    var cur = Number(p.stage) || 1, held = String(p.hold).toUpperCase() === "TRUE";
+    return '<div class="field" style="margin-top:16px"><label class="fl">🔄 เปลี่ยนขั้นตอนโครงการ</label>' +
+      '<select class="dr-stage">' + STAGES.map(function (s) {
+        return '<option value="' + s.n + '"' + (s.n === cur ? " selected" : "") + '>' + s.n + '. ' + esc(s.name) + '</option>';
+      }).join("") + '</select></div>' +
+      '<label class="fl" style="display:flex;align-items:center;gap:8px;cursor:pointer">' +
+      '<input type="checkbox" class="dr-hold"' + (held ? " checked" : "") + ' style="width:auto"> พักงานไว้ก่อน (Hold — ยังไม่อนุมัติ)</label>' +
+      '<button class="btn btn-primary btn-block dr-stage-save" style="margin-top:12px">บันทึกขั้นตอน</button>';
+  }
+  function wireStageForm(dbEl, p, onDone) {
+    var btn = dbEl.querySelector(".dr-stage-save");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var stage = +dbEl.querySelector(".dr-stage").value;
+      var hold = dbEl.querySelector(".dr-hold").checked;
+      btn.disabled = true; btn.textContent = "กำลังบันทึก…";
+      API.setProjectStage(p.id, stage, hold).then(function () {
+        UI.toast("อัพเดทขั้นตอนเป็น “" + STAGES[stage - 1].short + "” แล้ว", "ok");
+        Drawer.close();
+        if (onDone) onDone();
+      });
+    });
+  }
+  // เปิดโครงการ (usePush=true เมื่ออยู่ใน drill) — editable=true จะมีฟอร์มเปลี่ยนขั้นตอน
+  function openProject(p, usePush, editable, onDone) {
+    var fn = usePush ? Drawer.push : Drawer.open;
+    fn(esc(p.name), esc(p.owner), projDetail(p) + (editable ? stageForm(p) : ""),
+      function (db) { if (editable) wireStageForm(db, p, onDone); });
   }
 
   function contractorRow(c, i) {
@@ -218,7 +267,8 @@ window.DR = (function () {
     taskRow: taskRow, taskDetail: taskDetail, openTask: openTask,
     issueRow: issueRow, issueDetail: issueDetail, openIssue: openIssue,
     issueReplyForm: issueReplyForm, wireIssueReply: wireIssueReply,
-    projRow: projRow, projDetail: projDetail, contractorRow: contractorRow,
+    projRow: projRow, projDetail: projDetail, openProject: openProject, stageBar: stageBar,
+    contractorRow: contractorRow,
     wireList: wireList
   };
 })();
