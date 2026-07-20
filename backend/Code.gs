@@ -54,6 +54,7 @@ function doPost(e) {
       case 'assignTask':     data = assignTask_(payload); break;
       case 'createProject':  data = createProject_(payload); break;
       case 'setProjectStage': data = setProjectStage_(payload); break;
+      case 'setProjectProgress': data = setProjectProgress_(payload); break;
       case 'approveTask':    data = setTaskStatus_(payload.taskId, 'approved'); break;
       case 'rejectTask':     data = rejectTask_(payload); break;
       case 'resolveIssue':   data = resolveIssue_(payload); break;
@@ -204,12 +205,22 @@ function assignTask_(p) {
 }
 function createProject_(p) {
   var proj = {
-    id: uid_('p'), name: p.name, owner: p.owner || '',
+    id: uid_('p'), name: p.name,
     workType: p.workType || '', workSubType: p.workSubType || '',
-    budget: Number(p.budget) || 0, start: p.start || now_().slice(0, 10), due: p.due || '',
-    progress: 0, status: 'on_track', stage: Number(p.stage) || 1, hold: ''
+    area: p.area || '', areaOwner: p.areaOwner || '',
+    responsible: p.responsible || '', contractor: p.contractor || '',
+    start: p.start || now_().slice(0, 10), duration: p.duration || '',
+    progress: 0, stage: Number(p.stage) || 1, hold: '',
+    status: 'on_track', budget: Number(p.budget) || 0, due: p.due || ''
   };
   appendRow_('Projects', proj);
+  return { ok: true, project: proj };
+}
+// ผู้รับผิดชอบ (เจ้าของโปรเจค) อัพเดท % งานของโครงการ
+function setProjectProgress_(p) {
+  var pct = Math.max(0, Math.min(100, Number(p.progress) || 0));
+  updateCell_('Projects', 'id', p.projectId, 'progress', pct);
+  var proj = rows_('Projects').filter(function (x) { return String(x.id) === String(p.projectId); })[0];
   return { ok: true, project: proj };
 }
 // เปลี่ยนขั้นตอนโครงการ (1-7) + พักงาน (hold)
@@ -381,7 +392,8 @@ function setupPhotos() {
  */
 function SCHEMA_() {
   return {
-    Projects: ['id', 'name', 'owner', 'workType', 'workSubType', 'budget', 'start', 'due', 'progress', 'status', 'stage', 'hold'],
+    Projects: ['id', 'name', 'workType', 'workSubType', 'area', 'areaOwner', 'responsible', 'contractor',
+               'start', 'duration', 'progress', 'stage', 'hold', 'status', 'budget', 'due'],
     Tasks: ['id', 'projectId', 'project', 'contractorId', 'title', 'location', 'progress', 'due', 'status', 'assignee'],
     Updates: ['id', 'taskId', 'taskTitle', 'userId', 'userName', 'progress', 'note', 'photos', 'createdAt'],
     Issues: ['id', 'taskId', 'project', 'title', 'severity', 'detail', 'reporter', 'status', 'reply', 'photos', 'createdAt'],
@@ -401,28 +413,29 @@ function setupSheets() {
  * (Apps Script editor > เลือก setupUpgrade > Run) — รันหลังเพิ่มฟิลด์ใหม่
  */
 function setupUpgrade() {
-  var schema = SCHEMA_(), added = [];
+  var schema = SCHEMA_();
+  // 1) เพิ่มคอลัมน์ที่ขาดให้ทุกชีต (ข้อมูลเดิมไม่หาย)
   Object.keys(schema).forEach(function (name) {
-    schema[name].forEach(function (col) {
-      var sh = SS_().getSheetByName(name);
-      if (!sh) return;
-      var head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
-      if (head.indexOf(col) === -1) { ensureColumn_(name, col); added.push(name + '.' + col); }
-    });
+    schema[name].forEach(function (col) { ensureColumn_(name, col); });
   });
-  // โครงการเดิมที่ยังไม่มีขั้นตอน -> ตั้งเป็นขั้นตอน 6 (ดำเนินงาน)
+  // 2) จัดชีต Projects ใหม่ตามลำดับคอลัมน์มาตรฐาน
+  //    - ย้าย owner (เดิม) -> areaOwner
+  //    - โครงการเดิมที่ยังไม่มีขั้นตอน -> ขั้นตอน 6 (ดำเนินงาน)
   var sh = SS_().getSheetByName('Projects');
-  if (sh && sh.getLastRow() > 1) {
-    var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-    var col = head.indexOf('stage') + 1;
-    if (col > 0) {
-      var n = sh.getLastRow() - 1;
-      var vals = sh.getRange(2, col, n, 1).getValues();
-      for (var i = 0; i < n; i++) if (vals[i][0] === '' || vals[i][0] == null) vals[i][0] = 6;
-      sh.getRange(2, col, n, 1).setValues(vals);
-    }
+  var n = 0;
+  if (sh) {
+    var rows = rows_('Projects'), cols = schema.Projects;
+    var out = rows.map(function (r) {
+      if (!r.areaOwner && r.owner) r.areaOwner = r.owner;
+      if (r.stage === '' || r.stage == null) r.stage = 6;
+      return cols.map(function (c) { return r[c] != null ? r[c] : ''; });
+    });
+    n = out.length;
+    sh.clear();
+    sh.getRange(1, 1, 1, cols.length).setValues([cols]);
+    if (n) sh.getRange(2, 1, n, cols.length).setValues(out);
   }
-  return added.length ? 'เพิ่มคอลัมน์: ' + added.join(', ') : 'ครบอยู่แล้ว';
+  return 'อัปเกรดสคีมาเรียบร้อย · จัดคอลัมน์ Projects ใหม่ · ย้ายข้อมูล ' + n + ' โครงการ';
 }
 
 /**

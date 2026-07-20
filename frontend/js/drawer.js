@@ -143,21 +143,33 @@ window.DR = (function () {
     var st = STATUS[p.status] || STATUS.on_track, g = GRAD(p.progress, p.status);
     var s = stageOf(p), held = String(p.hold).toUpperCase() === "TRUE";
     var wt = esc(p.workType || "-") + (p.workSubType ? " · " + esc(p.workSubType) : "");
+    function row(label, val) { return val ? '<div class="drow"><span>' + label + '</span><b>' + esc(val) + '</b></div>' : ""; }
     return '<div class="dcard"><div class="dbig" style="color:' + PROGRESS_COLOR(p.progress, p.status) + '">' + p.progress + '%</div>' +
       bar(p.progress, g) +
       '<div class="drow"><span>ขั้นตอน</span><b>' + s.n + '. ' + esc(s.name) +
         (held ? ' <span class="status s-prob"><span class="d"></span>HOLD</span>' : '') + '</b></div>' +
       stageBar(p) +
+      '<div class="drow"><span>รหัสโปรเจค</span><b>' + esc(p.id) + '</b></div>' +
       '<div class="drow"><span>ประเภทงาน</span><b>' + wt + '</b></div>' +
+      row("พื้นที่", p.area) +
+      row("เจ้าของพื้นที่", p.areaOwner || p.owner) +
+      row("ผู้รับผิดชอบ", p.responsible) +
+      row("ผู้รับเหมา / ช่างภายใน", p.contractor) +
+      (p.start ? '<div class="drow"><span>วันที่เริ่ม</span><b>' + fmtDate(p.start) + '</b></div>' : "") +
+      row("ระยะเวลาโดยประมาณ", p.duration) +
       '<div class="drow"><span>สถานะ</span><span class="status ' + st.cls + '"><span class="d"></span>' + st.th + '</span></div>' +
-      '<div class="drow"><span>เจ้าของโครงการ</span><b>' + esc(p.owner) + '</b></div>' +
-      '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(p.due) + '</b></div>' +
+      (p.due ? '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(p.due) + '</b></div>' : "") +
       '<a class="btn btn-primary btn-block" style="margin-top:14px;text-decoration:none" href="project.html?id=' + esc(p.id) + '">เปิดหน้าโครงการเต็ม →</a></div>';
   }
   // ฟอร์มเปลี่ยนขั้นตอน (ใช้ในหน้า PM)
   function stageForm(p) {
     var cur = Number(p.stage) || 1, held = String(p.hold).toUpperCase() === "TRUE";
-    return '<div class="field" style="margin-top:16px"><label class="fl">🔄 เปลี่ยนขั้นตอนโครงการ</label>' +
+    return '<div class="field" style="margin-top:18px"><label class="fl">📊 อัพเดท % งานโครงการ' +
+      (p.responsible ? ' <span class="muted" style="font-weight:500">(ผู้รับผิดชอบ: ' + esc(p.responsible) + ')</span>' : '') + '</label>' +
+      '<div class="big-pct dr-pct-label" style="font-size:26px">' + (Number(p.progress) || 0) + '%</div>' +
+      '<input type="range" min="0" max="100" step="5" value="' + (Number(p.progress) || 0) + '" class="dr-pct" /></div>' +
+      '<button class="btn btn-ghost btn-block dr-pct-save">บันทึก % งาน</button>' +
+      '<div class="field" style="margin-top:16px"><label class="fl">🔄 เปลี่ยนขั้นตอนโครงการ</label>' +
       '<select class="dr-stage">' + STAGES.map(function (s) {
         return '<option value="' + s.n + '"' + (s.n === cur ? " selected" : "") + '>' + s.n + '. ' + esc(s.name) + '</option>';
       }).join("") + '</select></div>' +
@@ -166,6 +178,19 @@ window.DR = (function () {
       '<button class="btn btn-primary btn-block dr-stage-save" style="margin-top:12px">บันทึกขั้นตอน</button>';
   }
   function wireStageForm(dbEl, p, onDone) {
+    // อัพเดท % งานโครงการ
+    var pct = dbEl.querySelector(".dr-pct"), pctLabel = dbEl.querySelector(".dr-pct-label"),
+        pctBtn = dbEl.querySelector(".dr-pct-save");
+    if (pct) {
+      pct.addEventListener("input", function () { pctLabel.textContent = pct.value + "%"; });
+      pctBtn.addEventListener("click", function () {
+        pctBtn.disabled = true; pctBtn.textContent = "กำลังบันทึก…";
+        API.setProjectProgress(p.id, +pct.value).then(function () {
+          UI.toast("อัพเดท % งานเป็น " + pct.value + "% แล้ว", "ok");
+          Drawer.close(); if (onDone) onDone();
+        });
+      });
+    }
     var btn = dbEl.querySelector(".dr-stage-save");
     if (!btn) return;
     btn.addEventListener("click", function () {

@@ -170,10 +170,14 @@
       '<div class="field"><label class="fl">ชื่อโครงการ *</label><input id="npName" placeholder="เช่น อาคารจอดรถ สาขา 2" /></div>' +
       '<div class="field"><label class="fl">ประเภทงาน</label><select id="npType">' + typeOpts + '</select></div>' +
       '<div class="field" id="npSubWrap"><label class="fl">ประเภทงานย่อย</label><select id="npSub"></select></div>' +
-      '<div class="field"><label class="fl">ชื่อเจ้าของโครงการ</label><input id="npOwner" placeholder="เช่น บจก. เมืองทอง" /></div>' +
+      '<div class="field"><label class="fl">พื้นที่</label><input id="npArea" placeholder="เช่น อาคาร A ชั้น 3 / โรงงาน 2" /></div>' +
+      '<div class="field"><label class="fl">เจ้าของพื้นที่</label><input id="npAreaOwner" placeholder="เช่น ฝ่ายผลิต / บจก. เมืองทอง" /></div>' +
+      '<div class="field"><label class="fl">ผู้รับผิดชอบ (เจ้าของโปรเจค)</label><input id="npResp" placeholder="คนที่ดูแลโครงการ · เป็นคนอัพเดท % งาน" /></div>' +
+      '<div class="field"><label class="fl">ผู้รับเหมา / ช่างภายใน</label><input id="npContractor" placeholder="ใส่ทีหลังได้ ถ้ายังไม่ได้จัดหา" /></div>' +
+      '<div class="field"><label class="fl">วันที่เริ่ม</label><input id="npStart" type="date" /></div>' +
+      '<div class="field"><label class="fl">ระยะเวลาโดยประมาณ</label><input id="npDuration" placeholder="เช่น 3 เดือน / 45 วัน" /></div>' +
       '<div class="field"><label class="fl">ขั้นตอนเริ่มต้น</label><select id="npStage">' + stageOpts + '</select></div>' +
-      '<div class="field"><label class="fl">งบประมาณ (บาท)</label><input id="npBudget" type="number" placeholder="เช่น 5000000" /></div>' +
-      '<div class="field"><label class="fl">กำหนดส่ง</label><input id="npDue" type="date" /></div>' +
+      '<div class="field"><label class="fl">งบประมาณ (บาท)</label><input id="npBudget" type="number" placeholder="ใส่ทีหลังได้" /></div>' +
       '<div class="mfoot"><button class="btn btn-primary btn-block" onclick="PM.submitNewProject()">สร้างโครงการ</button>' +
       '<button class="btn btn-ghost btn-block" onclick="PM.closeModal()">ยกเลิก</button></div></div></div>';
     var typeSel = document.getElementById("npType");
@@ -194,14 +198,15 @@
     if (!name) { UI.toast("กรุณากรอกชื่อโครงการ", "warn"); return; }
     var t = WORK_TYPES[+document.getElementById("npType").value] || WORK_TYPES[0];
     var subSel = document.getElementById("npSub");
+    var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
     API.createProject({
       name: name,
       workType: t.name,
       workSubType: t.subs.length && subSel.value ? subSel.value : "",
-      owner: document.getElementById("npOwner").value.trim(),
-      stage: document.getElementById("npStage").value,
-      budget: document.getElementById("npBudget").value,
-      due: document.getElementById("npDue").value
+      area: v("npArea"), areaOwner: v("npAreaOwner"),
+      responsible: v("npResp"), contractor: v("npContractor"),
+      start: v("npStart"), duration: v("npDuration"),
+      stage: v("npStage"), budget: v("npBudget")
     }).then(function () {
       closeModal();
       UI.toast("สร้างโครงการ “" + name + "” แล้ว", "ok");
