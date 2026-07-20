@@ -13,7 +13,12 @@
     if (!d) { document.getElementById("pname").textContent = "ไม่พบโครงการ"; return; }
     var p = d.project;
     document.getElementById("pname").textContent = p.name;
-    document.getElementById("owner").textContent = "เจ้าของโครงการ: " + p.owner + " · กำหนดส่ง " + fmtDate(p.due);
+    var sub = [];
+    if (p.areaOwner || p.owner) sub.push("เจ้าของพื้นที่: " + (p.areaOwner || p.owner));
+    if (p.area) sub.push("📍 " + p.area);
+    if (p.responsible) sub.push("ผู้รับผิดชอบ: " + p.responsible);
+    if (p.due) sub.push("กำหนดส่ง " + fmtDate(p.due));
+    document.getElementById("owner").textContent = sub.join(" · ");
 
     var st = STATUS[p.status] || STATUS.on_track;
     var col = PROGRESS_COLOR(p.progress, p.status);
@@ -30,6 +35,14 @@
         '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px" class="muted">' +
         '<span>งานเสร็จ ' + done + '/' + d.tasks.length + '</span><span>ปัญหาค้าง ' + openIssues + '</span></div></div>' +
       '</div></div>';
+
+    // ขั้นตอนโครงการ 1-7 + ข้อมูลโครงการ
+    var stg = stageOf(p), held = String(p.hold).toUpperCase() === "TRUE";
+    html += '<div class="panel"><div class="ph"><b>ขั้นตอนโครงการ</b>' +
+      '<span class="stagechip">' + stg.n + '. ' + esc(stg.name) + '</span></div>' +
+      DR.stageBar(p) +
+      (held ? '<div style="margin-top:12px"><span class="status s-prob"><span class="d"></span>HOLD — พักงานไว้ (ยังไม่อนุมัติ)</span></div>' : "") +
+      '<div style="margin-top:16px">' + infoRows(p) + '</div></div>';
 
     // KPI mini
     html += '<div class="kpis">' +
@@ -58,6 +71,23 @@
     });
   });
 
+  // รายละเอียดโครงการ (ข้ามช่องที่ว่าง) — ยืม .drow ของ .dcard มาใช้โดยไม่เอากรอบ
+  function infoRows(p) {
+    function row(label, val) { return val ? '<div class="drow"><span>' + label + '</span><b>' + esc(val) + '</b></div>' : ""; }
+    var wt = esc(p.workType || "") + (p.workSubType ? " · " + esc(p.workSubType) : "");
+    return '<div class="dcard" style="border:0;padding:0">' +
+      row("รหัสโปรเจค", p.id) +
+      (wt ? '<div class="drow"><span>ประเภทงาน</span><b>' + wt + '</b></div>' : "") +
+      row("พื้นที่", p.area) +
+      row("เจ้าของพื้นที่", p.areaOwner || p.owner) +
+      row("ผู้รับผิดชอบ", p.responsible) +
+      row("ผู้รับเหมา / ช่างภายใน", p.contractor) +
+      (p.start ? '<div class="drow"><span>วันที่เริ่ม</span><b>' + fmtDate(p.start) + '</b></div>' : "") +
+      row("ระยะเวลาโดยประมาณ", p.duration) +
+      (p.due ? '<div class="drow"><span>กำหนดส่ง</span><b>' + fmtDate(p.due) + '</b></div>' : "") +
+      (p.budget ? '<div class="drow"><span>งบประมาณ</span><b>' + Number(p.budget).toLocaleString("th-TH") + ' บาท</b></div>' : "") +
+      '</div>';
+  }
   function kpi(lab, val, color) {
     return '<div class="kpi"><div class="lab">' + lab + '</div><div class="val tabular"' +
       (color ? ' style="color:' + color + '"' : '') + '>' + val + '</div></div>';
